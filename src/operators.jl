@@ -7,10 +7,8 @@
         - Charge density wave
         - Spin density wave
 =#
-
 using ITensors
 using ITensorMPS
-
 #=
     Generates the MPO for the EHM Hamiltonian 
     with strengths J, U and V. 
@@ -33,26 +31,6 @@ function H_EHM(N, J, U, V, sites)
     end
     return MPO(os, sites)
 end
-
-
-#=
-    Returns the density of up and down 
-    electrons.
-=#
-function density_operators(N, psi)
-  upd = fill(0.0, N)
-  dnd = fill(0.0, N)
-  for j in 1:N
-    orthogonalize!(psi, j)
-    psidag_j = dag(prime(psi[j], "Site"))
-    upd[j] = scalar(psidag_j * op(sites, "Nup", j) * psi[j])
-    dnd[j] = scalar(psidag_j * op(sites, "Ndn", j) * psi[j])
-  end
-  return upd, dnd 
-end
-
-
-
 #= 
     A collection of functions to generate 
     to generate random initial product states  
@@ -61,9 +39,7 @@ end
     These states corresponds to diferent 
     phases of matter and are used according 
     to the phase diagram of the EHM.  
-
 =#
-
 function random_metallic_state(L, Nup, Ndn)
     state = fill("Emp", L)
     # Random order of site indices
@@ -86,7 +62,6 @@ function random_metallic_state(L, Nup, Ndn)
     end
     return state
 end
-
 function random_cdw_state(L, Nup, Ndn)
     state = fill("Emp", L)
     Nup_extra = Int.(Nup % Ndn)
@@ -99,7 +74,6 @@ function random_cdw_state(L, Nup, Ndn)
     end
     return state
 end 
-
 function random_sdw_state(L, Nup, Ndn)
     state = fill("Emp", L)
     Nup_extra = Int.(Nup % Ndn)
