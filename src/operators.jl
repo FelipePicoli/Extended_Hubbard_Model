@@ -86,3 +86,27 @@ function random_sdw_state(L, Nup, Ndn)
     end
     return state 
 end
+
+function random_ps_state(L, Nup, Ndn)
+    state = fill("Emp", L)
+    
+    Ndbl = min(Nup, Ndn)
+    Nup -= Ndbl
+    Ndn -= Ndbl
+    
+    for i in 1:Ndbl
+        state[i] = "UpDn"
+    end
+    
+    next_site = Ndbl + 1
+    
+    if Nup > 0
+        state[next_site] = "Up"
+        next_site += 1
+    elseif Ndn > 0
+        state[next_site] = "Dn"
+        next_site += 1
+    end
+    return state
+end
+
