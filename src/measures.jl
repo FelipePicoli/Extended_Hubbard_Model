@@ -1,38 +1,30 @@
-# Trying to use the MPS form to compute the reduced density matrix 
-# properties. 
-# For now comparing it to the single-site entanglement computed from correlators.
-function average_entanglement_entropy(psi, L)
-    # Average entropy taken over all sites. 
-    S_avg = 0.0
-    # Over all sites j
-    for j = 1:L 
-
-        # change orthogonality center to j
-        psi = orthogonalize(psi, j)
-
-        # tensor at site j
-        A = psi[j]
-
-        # prime the physical index 
-        A_dag = dag(A)
-        prime!(A_dag, "Site")
-
-        rdm = A * A_dag
-        # Diagonalize
-        D, U = eigen(rdm)
-
-        # Compute von Neumann entropy safely
-        S = 0.0
-        for n=1:dim(D, 1)
-            p = D[n,n] 
-            p_real = real(p)
-            if p_real > 1e-12
-                S -= p_real * log(p_real)
-            end
+using LinearAlgebra
+# Von Neumann entropy in bits - configuration space.#
+function Ep(rdm, L)
+    println("trace (rho) = ", tr(rdm))
+    println("ishermitian(rho) = ", ishermitian(rdm))
+    lambdas = eigvals(rdm)
+    S = 0
+    println("eigenvals = ", lambdas)
+    for lambda in lambdas
+        lambda = real(lambda) 
+        # S -= lambda * log2(lambda)
+        # CRITICAL: Handle lambda <= 0 for log2
+        if lambda > 1e-15 # A small threshold to avoid errors with log2
+            S -= lambda * log2(lambda)
         end
-        S_avg += S 
+    end 
+    return S - log2(L)
+end
+
+function quantum_coherence(rho, L)
+    C = 0.0
+    for i in 1:(2*L)
+        for j in (i+1):(2*L)
+            C += abs(rho[i, j])
+        end
     end
-    return S_avg / L 
+    return C 
 end
 #=
     L - chain size 
@@ -60,11 +52,11 @@ function density_operators(N, psi)
     dnd = fill(0.0, N)
     updn = fill(0.0, N) 
     for j in 1:N
-    orthogonalize!(psi, j)
-    psidag_j = dag(prime(psi[j], "Site"))
-    upd[j] = scalar(psidag_j * op(sites, "Nup", j) * psi[j])
-    dnd[j] = scalar(psidag_j * op(sites, "Ndn", j) * psi[j])
-    updn[j] = scalar(psidag_j * op(sites, "Nupdn", j) * psi[j])
+        orthogonalize!(psi, j)
+        psidag_j = dag(prime(psi[j], "Site"))
+        upd[j] = scalar(psidag_j * op(sites, "Nup", j) * psi[j])
+        dnd[j] = scalar(psidag_j * op(sites, "Ndn", j) * psi[j])
+        updn[j] = scalar(psidag_j * op(sites, "Nupdn", j) * psi[j])
     end
     return upd, dnd, updn
 end

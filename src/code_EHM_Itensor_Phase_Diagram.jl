@@ -35,6 +35,7 @@ V_values = range(V0, stop=Vf, length=Npoints)
 
 # dmrg parameters 
 nsweeps = parser["nsweeps"]
+m = parser["m"]
 sites = siteinds("Electron", L; conserve_qns=true)
 
 maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200]
@@ -49,7 +50,6 @@ epsilon = 10e-2
 
 for (i, U) in enumerate(U_values)
     for (j, V) in enumerate(V_values)
-        if(V < 0)
             #=
                 Add check if files with Uf and Vf already exists. 
             =#
@@ -64,22 +64,19 @@ for (i, U) in enumerate(U_values)
             elseif ((abs(V) >= abs(2 * U + epsilon)) || 
                 (V > 0 && U < 0)) 
                 state = random_cdw_state(L, Nup, Ndn)
-            elseif (abs(V) < abs(2 * U + epsilon)) 
+            elseif (V < 2 * U + epsilon) 
                 state = random_sdw_state(L, Nup, Ndn)
-            # Took approximation from the paper plots.
-            elseif ((U < 0 && V < -1.5) || (U > 0 && V <= -1.5 + 2*U))
-                state = random_ps_state(L, Nup, Ndn)
+            else 
+                state = random_metallic_state(L, Nup, Ndn)
             end
             
-            psi0 = random_mps(sites, state; linkdims=15)
+            psi0 = random_mps(sites, state; linkdims=m)
             # Start DMRG calculation:
             energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
+
             upd, dnd, updn = density_operators(L, psi)
             
-            # println("upd = $upd")
-            # println("dnd = $dnd")
-            # println("updn = $updn")
-
+            rho_1 = build_1_particle_rdm(psi)
             #=
                 Can reconstruct the densities from these three 
                 results.
@@ -88,12 +85,21 @@ for (i, U) in enumerate(U_values)
             # removed the 1/2 factor
             magnetization = upd .- dnd
             doublon = updn
+
+
+            # Check number of particles
+            @show flux(psi0)
+            @show flux(psi)
+                        
+
             #= 
                 Implementation of the single-site entanglement 
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
             S = average_single_site_entanglement(L, upd, dnd, doublon)
-            E_p = average_entanglement_entropy(psi, L)
+            E_p = Ep(rho_1, L) - log2(L)
+            corr = quantum_coherence(rho_1, L)
+
 
             filename = joinpath(results, "charge_density_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, charge_density)
@@ -112,8 +118,10 @@ for (i, U) in enumerate(U_values)
 
             filename = joinpath(results, "S_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, S)
+
+            filename = joinpath(results, "Coh_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            writedlm(filename, corr)            
         end
-    end
 end
 filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")
 writedlm(filename, U_values)

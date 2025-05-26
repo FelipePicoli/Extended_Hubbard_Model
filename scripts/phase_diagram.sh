@@ -19,18 +19,19 @@ exec_file=${dir_folder}'src/code_'${exec_name}'.jl'
 echo "Project Root: $project_root"
 echo "Results Path: $path_results"
 
-U0=-8.0
-Uf=8.0
+U0=-6.0
+Uf=6.0
 
-V0=-6.0
-Vf=6.0
+V0=-4.0
+Vf=4.0
 
-Npoints=100
-nsweeps=20
+Npoints=80
+nsweeps=10
+m=10
 
-for L in 7 
+for L in 15
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
-    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results --model $model --nsweeps $nsweeps
+    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results --model $model --nsweeps $nsweeps --m $m
 done
