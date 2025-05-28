@@ -54,9 +54,9 @@ for (i, U) in enumerate(U_values)
             #=
                 Add check if files with Uf and Vf already exists. 
             =#
+
             println("U = $U, V = $V")
-            # for running cases still not computed.
-        #
+
             sites = siteinds("Electron", L; conserve_qns=true)
             H = H_EHM(L, J, U, V, sites)
             state = fill("Emp", L)
@@ -69,7 +69,7 @@ for (i, U) in enumerate(U_values)
             elseif (V < 2 * U + epsilon) 
                 state = random_sdw_state(L, Nup, Ndn)
             else 
-                state = random_metallic_state(L, Nup, Ndn)
+                state = random_ps_state(L, Nup, Ndn)
             end
             
             psi0 = random_mps(sites, state; linkdims=m)
@@ -77,6 +77,7 @@ for (i, U) in enumerate(U_values)
             # Start DMRG calculation:
             energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
             upd, dnd, updn = density_operators(L, psi, sites)
+
             rho_1 = build_1_particle_rdm(psi)
             #=
                 Can reconstruct the densities from these three 
@@ -84,8 +85,10 @@ for (i, U) in enumerate(U_values)
             =#
             charge_density = upd .+ dnd
             # removed the 1/2 factor
-            magnetization = upd .- dnd
-            doublon = updn
+            magnetization = (upd .- dnd) / 2
+
+            m_cdw = m_cdw(L, charge_density) 
+            m_sdw = m_cdw(L, magnetization) 
 
             # Check number of particles
             @show flux(psi0)
@@ -98,8 +101,7 @@ for (i, U) in enumerate(U_values)
             E_p, E_p_bits  = S(rho_1, L) # - log2(L)
             E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
             corr = quantum_coherence(rho_1, L)
-
-
+            #=
             filename = joinpath(results, "charge_density_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, charge_density)
 
@@ -108,6 +110,7 @@ for (i, U) in enumerate(U_values)
             
             filename = joinpath(results, "doublons_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, doublon)
+            =#
 
             filename = joinpath(results, "E_GS_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, energy)
@@ -123,8 +126,14 @@ for (i, U) in enumerate(U_values)
 
             filename = joinpath(results, "Coh_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, corr)            
+
+            filename = joinpath(results, "m_sdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            writedlm(filename, m_sdw)            
+
+            filename = joinpath(results, "m_cdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            writedlm(filename, m_cdw)            
             #=
-                Free up memory.
+                Free up memory. 
             =# 
             H = nothing
             psi0 = nothing

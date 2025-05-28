@@ -1,14 +1,18 @@
 using LinearAlgebra
 # Von Neumann entropy in bits - configuration space.#
 function S(rdm, L)
+
     println("trace (rho) = ", tr(rdm))
     println("ishermitian(rho) = ", ishermitian(rdm))
+
     lambdas = eigvals(rdm)
     S_bit = 0
     S = 0
+
     println("eigenvals = ", lambdas)
     println("eigenvals / L= ", lambdas / L)
     println("sum(eigvals) = ", sum(real(lambdas)))
+
     for lambda in lambdas
         lambda = real(lambda) 
         # S -= lambda * log2(lambda)
@@ -31,8 +35,6 @@ function quantum_coherence(rho, L)
     return C 
 end
 #=
-    L - chain size 
-    N - Dou
 =#
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)
@@ -46,6 +48,22 @@ function average_single_site_entanglement(L, up, dn, updn)
         single_site_entanglement[i] = 1 - (w_2^2 + w_up^2 + w_dn^2 + w_0^2)
     end
     return Statistics.mean(single_site_entanglement)
+end 
+
+
+function m_sdw(L, Sj)
+    m_sdw = 0.0 
+    for j in 1:L 
+        m_sdw += (-1)^(j-1) * Sj[j]
+    end
+    return m_sdw / L
+end
+function m_cdw(L, nj)
+    m_cdw = 0 
+    for j in 1:L 
+        m_cdw += (-1)^(j-1) * (nj[j] - 1)
+    end
+    return m_cdw / L 
 end 
 #=
     Returns the density of up and down 
