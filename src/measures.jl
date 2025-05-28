@@ -56,14 +56,14 @@ end
 function m_sdw(L, Sj)
     m_sdw = 0.0 
     for j in 1:L 
-        m_sdw += (-1)^(j-1) * Sj[j]
+        m_sdw += (-1)^(j) * Sj[j]
     end
     return m_sdw / L
 end
 function m_cdw(L, nj)
     m_cdw = 0 
     for j in 1:L 
-        m_cdw += (-1)^(j-1) * (nj[j] - 1)
+        m_cdw += (-1)^(j) * (nj[j] - 1)
     end
     return m_cdw / L 
 end 

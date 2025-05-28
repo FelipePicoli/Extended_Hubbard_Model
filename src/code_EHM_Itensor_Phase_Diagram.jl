@@ -61,23 +61,21 @@ for (i, U) in enumerate(U_values)
             H = H_EHM(L, J, U, V, sites)
             state = fill("Emp", L)
 
-            if (V == 0 && U == 0)
+            if (abs(V + 0.5 * epsilon) >= 0 && abs(U + 0.5*epsilon) >= 0)
                 state = random_metallic_state(L, Nup, Ndn)
             elseif ((abs(V) >= abs(2 * U + epsilon)) || 
                 (V > 0 && U < 0)) 
                 state = random_cdw_state(L, Nup, Ndn)
-            elseif (V < 2 * U + epsilon) 
+            elseif (abs(V) < abs(2 * U + epsilon)) 
                 state = random_sdw_state(L, Nup, Ndn)
-            else 
+            else
                 state = random_ps_state(L, Nup, Ndn)
             end
-            
             psi0 = random_mps(sites, state; linkdims=m)
-
             # Start DMRG calculation:
             energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
             upd, dnd, updn = density_operators(L, psi, sites)
-
+            
             rho_1 = build_1_particle_rdm(psi)
             #=
                 Can reconstruct the densities from these three 
@@ -85,11 +83,11 @@ for (i, U) in enumerate(U_values)
             =#
             charge_density = upd .+ dnd
             # removed the 1/2 factor
-            magnetization = (upd .- dnd) / 2
+            magnetization = (upd .- dnd) #  / 2
             
             # compute order parameters
             op_m_cdw = m_cdw(L, charge_density) 
-            op_m_sdw = m_cdw(L, magnetization) 
+            op_m_sdw = m_sdw(L, magnetization) 
 
             # Check number of particles
             @show flux(psi0)
@@ -99,10 +97,11 @@ for (i, U) in enumerate(U_values)
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
             avg_ss_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
+
             E_p, E_p_bits  = S(rho_1, L) # - log2(L)
             E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
             corr = quantum_coherence(rho_1, L)
-            #=
+
             filename = joinpath(results, "charge_density_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, charge_density)
 
@@ -110,8 +109,8 @@ for (i, U) in enumerate(U_values)
             writedlm(filename, magnetization)
             
             filename = joinpath(results, "doublons_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, doublon)
-            =#
+            writedlm(filename, updn)
+
             filename = joinpath(results, "E_GS_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, energy)
 
@@ -142,9 +141,7 @@ for (i, U) in enumerate(U_values)
         end
 end
 
-#=
 filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")
 writedlm(filename, U_values)
 filename = joinpath(results, "V_vals_NPoints=$(Npoints).txt")
 writedlm(filename, V_values)
-=#

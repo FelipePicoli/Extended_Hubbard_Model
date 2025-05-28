@@ -27,13 +27,11 @@ Uf=6.0
 V0=-4.0
 Vf=4.0
 
-Npoints=80
-nsweeps=10
-m=10
+Npoints=50
 
-for L in 6
+for L in 5
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
-    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results --model $model --nsweeps $nsweeps --m $m
+    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results --model $model
 done

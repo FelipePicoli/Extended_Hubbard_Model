@@ -19,7 +19,7 @@ dir_folder="$project_root/"
 path_results=${dir_folder}'results/'${exec_name}
 exec_file=${dir_folder}'src/code_'${exec_name}'.jl'
 
-exec_script=${dir_folder}'src/'${exec_name}'.jl'
+exec_script=${dir_folder}'src/'${script}'.jl'
 
 echo "Project Root: $project_root"
 echo "Results Path: $path_results"
@@ -30,8 +30,8 @@ Uf=6.0
 V0=-4.0
 Vf=4.0
 
-Npoints=50
-nsweeps=10
+Npoints=25
+nsweeps=6
 m=10
 
 for L in 5
