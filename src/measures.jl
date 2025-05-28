@@ -9,9 +9,11 @@ function S(rdm, L)
     S_bit = 0
     S = 0
 
+    #=
     println("eigenvals = ", lambdas)
     println("eigenvals / L= ", lambdas / L)
     println("sum(eigvals) = ", sum(real(lambdas)))
+    =#
 
     for lambda in lambdas
         lambda = real(lambda) 

@@ -86,9 +86,10 @@ for (i, U) in enumerate(U_values)
             charge_density = upd .+ dnd
             # removed the 1/2 factor
             magnetization = (upd .- dnd) / 2
-
-            m_cdw = m_cdw(L, charge_density) 
-            m_sdw = m_cdw(L, magnetization) 
+            
+            # compute order parameters
+            op_m_cdw = m_cdw(L, charge_density) 
+            op_m_sdw = m_cdw(L, magnetization) 
 
             # Check number of particles
             @show flux(psi0)
@@ -97,7 +98,7 @@ for (i, U) in enumerate(U_values)
                 Implementation of the single-site entanglement 
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
-            avg_ss_entanglement = average_single_site_entanglement(L, upd, dnd, doublon)
+            avg_ss_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
             E_p, E_p_bits  = S(rho_1, L) # - log2(L)
             E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
             corr = quantum_coherence(rho_1, L)
@@ -111,7 +112,6 @@ for (i, U) in enumerate(U_values)
             filename = joinpath(results, "doublons_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, doublon)
             =#
-
             filename = joinpath(results, "E_GS_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, energy)
 
@@ -128,10 +128,10 @@ for (i, U) in enumerate(U_values)
             writedlm(filename, corr)            
 
             filename = joinpath(results, "m_sdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, m_sdw)            
+            writedlm(filename, op_m_sdw)            
 
             filename = joinpath(results, "m_cdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, m_cdw)            
+            writedlm(filename, op_m_cdw)            
             #=
                 Free up memory. 
             =# 
@@ -141,7 +141,10 @@ for (i, U) in enumerate(U_values)
             GC.gc()
         end
 end
+
+#=
 filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")
 writedlm(filename, U_values)
 filename = joinpath(results, "V_vals_NPoints=$(Npoints).txt")
 writedlm(filename, V_values)
+=#
