@@ -24,16 +24,16 @@ L = parser["L"]
 # model = parser["model"]
 # results = parser["results"]
 J = 1.0  # parser["J"]
-U = 0.0 # parser["U0"]
+U = -3.06122  # parser["U0"]
 Uf = 8.0 # parser["Uf"]
-V = 0.0 # parser["V0"]
+V = -0.08163 # parser["V0"]
 Vf = 8.0 # parser["Vf"]
 
 # dmrg parameters 
 nsweeps = parser["nsweeps"]
 sites = siteinds("Electron", L; conserve_qns=true)
 
-maxdim = [150] # , 100, 200, 400, 800, 800 , 1000, 1200]
+maxdim = [150, 100, 200, 400, 800, 800 , 1000, 1200]
 cutoff = [1E-12]
 
 Npart = floor(Int, L/2) 
@@ -88,13 +88,16 @@ doublon = updn
 Implementation of the single-site entanglement 
 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
 =#
-S = average_single_site_entanglement(L, upd, dnd, doublon)
-E_p = Ep(rho_1, L) - log2(L)
+
+# S = average_single_site_entanglement(L, upd, dnd, doublon)
+S, S_bit = Ep(rho_1, L)
 corr = quantum_coherence(rho_1, L)
 
-println(S)
-println(energy)
-println(magnetization)
+println("<ψ | ψ > = ", inner(psi,psi)) # scalar(dag(psi)*psi))
+
+# println("S = ", S)
+println("E_p_bit = ", S_bit - log2(L))
+println("E_p = ", S - log(L))
 
 #= 
     Implementation of the single-site entanglement 

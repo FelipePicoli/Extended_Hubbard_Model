@@ -7,10 +7,13 @@
 using ITensors
 using ITensorMPS
 
-using DelimitedFiles
 using Random
 
 using ArgParse
+
+using DelimitedFiles
+using DataFrames
+using CSV
 
 include("operators.jl")
 include("measures.jl")
@@ -36,8 +39,6 @@ V_values = range(V0, stop=Vf, length=Npoints)
 # dmrg parameters 
 nsweeps = parser["nsweeps"]
 m = parser["m"]
-sites = siteinds("Electron", L; conserve_qns=true)
-
 maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200]
 cutoff = [1E-14]
 
@@ -55,7 +56,8 @@ for (i, U) in enumerate(U_values)
             =#
             println("U = $U, V = $V")
             # for running cases still not computed.
-
+        #
+            sites = siteinds("Electron", L; conserve_qns=true)
             H = H_EHM(L, J, U, V, sites)
             state = fill("Emp", L)
 
@@ -71,11 +73,10 @@ for (i, U) in enumerate(U_values)
             end
             
             psi0 = random_mps(sites, state; linkdims=m)
+
             # Start DMRG calculation:
             energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
-
-            upd, dnd, updn = density_operators(L, psi)
-            
+            upd, dnd, updn = density_operators(L, psi, sites)
             rho_1 = build_1_particle_rdm(psi)
             #=
                 Can reconstruct the densities from these three 
@@ -86,18 +87,16 @@ for (i, U) in enumerate(U_values)
             magnetization = upd .- dnd
             doublon = updn
 
-
             # Check number of particles
             @show flux(psi0)
             @show flux(psi)
-                        
-
             #= 
                 Implementation of the single-site entanglement 
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
-            S = average_single_site_entanglement(L, upd, dnd, doublon)
-            E_p = Ep(rho_1, L) - log2(L)
+            avg_ss_entanglement = average_single_site_entanglement(L, upd, dnd, doublon)
+            E_p, E_p_bits  = S(rho_1, L) # - log2(L)
+            E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
             corr = quantum_coherence(rho_1, L)
 
 
@@ -116,11 +115,21 @@ for (i, U) in enumerate(U_values)
             filename = joinpath(results, "E_p_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, E_p)
 
+            filename = joinpath(results, "E_p_bits_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            writedlm(filename, E_p_bits)
+
             filename = joinpath(results, "S_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, S)
+            writedlm(filename, avg_ss_entanglement)
 
             filename = joinpath(results, "Coh_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
             writedlm(filename, corr)            
+            #=
+                Free up memory.
+            =# 
+            H = nothing
+            psi0 = nothing
+            psi = nothing
+            GC.gc()
         end
 end
 filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")

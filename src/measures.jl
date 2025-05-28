@@ -1,20 +1,24 @@
 using LinearAlgebra
 # Von Neumann entropy in bits - configuration space.#
-function Ep(rdm, L)
+function S(rdm, L)
     println("trace (rho) = ", tr(rdm))
     println("ishermitian(rho) = ", ishermitian(rdm))
     lambdas = eigvals(rdm)
+    S_bit = 0
     S = 0
     println("eigenvals = ", lambdas)
+    println("eigenvals / L= ", lambdas / L)
+    println("sum(eigvals) = ", sum(real(lambdas)))
     for lambda in lambdas
         lambda = real(lambda) 
         # S -= lambda * log2(lambda)
         # CRITICAL: Handle lambda <= 0 for log2
         if lambda > 1e-15 # A small threshold to avoid errors with log2
-            S -= lambda * log2(lambda)
+            S_bit -= lambda * log2(lambda)
+            S -= lambda * log(lambda)
         end
     end 
-    return S - log2(L)
+    return S, S_bit
 end
 
 function quantum_coherence(rho, L)
@@ -47,7 +51,7 @@ end
     Returns the density of up and down 
     electrons.
 =#
-function density_operators(N, psi)
+function density_operators(N, psi, sites)
     upd = fill(0.0, N)
     dnd = fill(0.0, N)
     updn = fill(0.0, N) 
