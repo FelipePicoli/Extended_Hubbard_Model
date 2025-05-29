@@ -9,6 +9,8 @@ function parse_commandline()
             arg_type = Int
         "--model"
             help = "Name of the model or exec_file"
+        "--code"
+            help = "Name of the executable. i.e. Phase_Diagram"
         "--results"
             help = "Path for the results folder"
         "-J"
@@ -44,6 +46,7 @@ function parse_commandline()
             help = "(DMRG Parameters) bond dimension."
             default = 10
             arg_type = Int
+
     end
     return parse_args(s)
 end

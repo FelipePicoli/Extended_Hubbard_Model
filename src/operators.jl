@@ -82,7 +82,6 @@ function build_2_particle_rdm(psi)
             end
         end
     end
-
 end
 
 #= 

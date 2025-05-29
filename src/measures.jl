@@ -8,13 +8,11 @@ function S(rdm, L)
     lambdas = eigvals(rdm)
     S_bit = 0
     S = 0
-
     #=
     println("eigenvals = ", lambdas)
     println("eigenvals / L= ", lambdas / L)
     println("sum(eigvals) = ", sum(real(lambdas)))
     =#
-
     for lambda in lambdas
         lambda = real(lambda) 
         # S -= lambda * log2(lambda)
@@ -41,7 +39,6 @@ end
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)
     single_site_entanglement = fill(0.0, L)
-
     for i in 1:L 
         w_2 = updn[i] 
         w_up = up[i] - w_2 
@@ -54,18 +51,18 @@ end
 
 
 function m_sdw(L, Sj)
-    m_sdw = 0.0 
+    m_sdw_val = 0.0 
     for j in 1:L 
-        m_sdw += (-1)^(j) * Sj[j]
+        m_sdw_val += (-1)^(j-1) * Sj[j]
     end
-    return m_sdw / L
+    return m_sdw_val / L
 end
 function m_cdw(L, nj)
-    m_cdw = 0 
+    m_cdw_val = 0 
     for j in 1:L 
-        m_cdw += (-1)^(j) * (nj[j] - 1)
+        m_cdw_val += (-1)^(j-1) * (nj[j] - 1)
     end
-    return m_cdw / L 
+    return m_cdw_val / L 
 end 
 #=
     Returns the density of up and down 

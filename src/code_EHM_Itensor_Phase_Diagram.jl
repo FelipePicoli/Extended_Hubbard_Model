@@ -14,6 +14,7 @@ using ArgParse
 using DelimitedFiles
 using DataFrames
 using CSV
+using Printf
 
 include("operators.jl")
 include("measures.jl")
@@ -83,11 +84,11 @@ for (i, U) in enumerate(U_values)
             =#
             charge_density = upd .+ dnd
             # removed the 1/2 factor
-            magnetization = (upd .- dnd) #  / 2
+            magnetization = (upd .- dnd) / 2
             
             # compute order parameters
-            op_m_cdw = m_cdw(L, charge_density) 
-            op_m_sdw = m_sdw(L, magnetization) 
+            op_m_cdw = abs(m_cdw(L, charge_density))
+            op_m_sdw = abs(m_sdw(L, magnetization))
 
             # Check number of particles
             @show flux(psi0)
@@ -102,36 +103,38 @@ for (i, U) in enumerate(U_values)
             E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
             corr = quantum_coherence(rho_1, L)
 
-            filename = joinpath(results, "charge_density_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
+
+            filename = joinpath(results, replace(info_input, "XXXXX" => "charge_density"))
             writedlm(filename, charge_density)
 
-            filename = joinpath(results, "magnetization_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            filename = joinpath(results, replace(info_input, "XXXXX" => "magnetization"))
             writedlm(filename, magnetization)
-            
-            filename = joinpath(results, "doublons_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+
+            filename = joinpath(results, replace(info_input, "XXXXX" => "doublons"))
             writedlm(filename, updn)
 
-            filename = joinpath(results, "E_GS_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            filename = joinpath(results, replace(info_input, "XXXXX" => "E_GS"))
             writedlm(filename, energy)
 
-            filename = joinpath(results, "E_p_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            filename = joinpath(results, replace(info_input, "XXXXX" => "E_p"))
             writedlm(filename, E_p)
 
-            filename = joinpath(results, "E_p_bits_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            filename = joinpath(results, replace(info_input, "XXXXX" => "E_p_bits"))
             writedlm(filename, E_p_bits)
 
-            filename = joinpath(results, "S_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
+            filename = joinpath(results, replace(info_input, "XXXXX" => "S"))
             writedlm(filename, avg_ss_entanglement)
 
-            filename = joinpath(results, "Coh_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, corr)            
+            filename = joinpath(results, replace(info_input, "XXXXX" => "coh"))
+            writedlm(filename, corr)
 
-            filename = joinpath(results, "m_sdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, op_m_sdw)            
+            filename = joinpath(results, replace(info_input, "XXXXX" => "m_sdw"))
+            writedlm(filename, op_m_sdw)
 
-            filename = joinpath(results, "m_cdw_$(model)_L=$(L)_U=$(U)_V=$(V)_NPoints=$(Npoints).txt")
-            writedlm(filename, op_m_cdw)            
-            #=
+            filename = joinpath(results, replace(info_input, "XXXXX" => "m_cdw"))
+            writedlm(filename, op_m_cdw)
+            #=      
                 Free up memory. 
             =# 
             H = nothing
