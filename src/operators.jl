@@ -62,26 +62,61 @@ function build_1_particle_rdm(psi)
     rho_1 = rho_1 / L
 end
 
-#=
-      os -= J, "Cdagup", i, "Cup", i + 1
-      os -= J, "Cdagup", i + 1, "Cup", i
-      os -= J, "Cdagdn", i, "Cdn", i + 1
-=#
-function build_2_particle_rdm(psi)
-    
-    os = OpSum()
-
+function spin_correlators_mpo(state, sites, i, j, l, k)
     spins = ["up", "dn"]
-    op = ["Cdag", "C"]
 
-    for i in 1:L 
-        for j in 1:L 
-            for k in 1:L 
-                for l in 1:L 
+    matrix_block = zeros(ComplexF64, 4, 4)
+
+    for i_spin in 1:2
+        for j_spin in 1:2
+            
+            row = 2 * (i_spin - 1) + j_spin
+
+            for l_spin in 1:2
+                for k_spin in 1:2
+
+                    col = 2 * (l_spin - 1) + k_spin
+
+                    ampo_op = OpSum()
+
+                    ampo_op += "Cdag" * spins[i_spin], i, "Cdag" * spins[j_spin], j,
+                                "C" * spins[l_spin], l, "C" * spins[k_spin], k
+
+                    O_mpo = MPO(ampo_op, sites)
+                    
+                    matrix_block[row, col] = inner(prime(state), O_mpo, state)
+                    
                 end
             end
         end
     end
+    return matrix_block
+end
+
+function build_2_particle_rdm(state, sites)
+
+    L = length(state)
+    rho_2 = zeros(ComplexF64, (2*L)^2, (2*L)^2) 
+    
+    # (L^2) x (L^2) blocks of spin correlators.
+    for i in 1:L 
+        for j in 1:L 
+            for l in 1:L 
+                for k in 1:L
+                    
+                    block_spin_correlators = spin_correlators_mpo(state, sites, i, j, l, k)
+
+                    # Compute block position
+                    row_block = 2*(i-1)*L + 2*(j-1)
+                    col_block = 2*(l-1)*L + 2*(k-1)
+
+                    # Fill in the 4x4 block
+                    rho_2[row_block+1:row_block+4, col_block+1:col_block+4] = block_spin_correlators
+                end
+            end
+        end
+    end
+    return rho_2
 end
 
 #= 

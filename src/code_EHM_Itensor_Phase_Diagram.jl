@@ -40,8 +40,8 @@ V_values = range(V0, stop=Vf, length=Npoints)
 # dmrg parameters 
 nsweeps = parser["nsweeps"]
 m = parser["m"]
-maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200]
-cutoff = [1E-14]
+maxdim = [50, 100, 200, 400, 800, 800]
+cutoff = [1E-12]
 
 Npart = floor(Int, L/2) 
 Nup = Npart + L % 2 
@@ -78,6 +78,9 @@ for (i, U) in enumerate(U_values)
             upd, dnd, updn = density_operators(L, psi, sites)
             
             rho_1 = build_1_particle_rdm(psi)
+
+            rho_2 = build_2_particle_rdm(psi, sites)
+            rho_2 = build_2_particle_rdm(psi, sites)
             #=
                 Can reconstruct the densities from these three 
                 results.
@@ -101,7 +104,14 @@ for (i, U) in enumerate(U_values)
 
             E_p, E_p_bits  = S(rho_1, L) # - log2(L)
             E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
-            corr = quantum_coherence(rho_1, L)
+
+
+            Q_2, _ = S(rho_1, L) # - log2(L)
+            Q_2 = Q_2 - log2(L)
+
+            coh_1rdm = quantum_coherence(rho_1, L)
+
+            coh_2rdm = quantum_coherence(rho_2, L)
 
             info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
 
@@ -126,8 +136,15 @@ for (i, U) in enumerate(U_values)
             filename = joinpath(results, replace(info_input, "XXXXX" => "S"))
             writedlm(filename, avg_ss_entanglement)
 
-            filename = joinpath(results, replace(info_input, "XXXXX" => "coh"))
-            writedlm(filename, corr)
+            filename = joinpath(results, replace(info_input, "XXXXX" => "coh_1rdm"))
+            writedlm(filename, coh_1rdm)
+
+            filename = joinpath(results, replace(info_input, "XXXXX" => "coh_2rdm"))
+            writedlm(filename, coh_2rdm)
+
+            filename = joinpath(results, replace(info_input, "XXXXX" => "Q_2"))
+            writedlm(filename, Q_2)
+
 
             filename = joinpath(results, replace(info_input, "XXXXX" => "m_sdw"))
             writedlm(filename, op_m_sdw)
@@ -143,7 +160,6 @@ for (i, U) in enumerate(U_values)
             GC.gc()
         end
 end
-
 filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")
 writedlm(filename, U_values)
 filename = joinpath(results, "V_vals_NPoints=$(Npoints).txt")

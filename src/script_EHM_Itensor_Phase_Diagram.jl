@@ -10,7 +10,6 @@ using Printf
 include("parser.jl")
 
 let
-
     parser = parse_commandline()
 
     # Model parameters
@@ -31,8 +30,7 @@ let
     U_values = range(U0, stop=Uf, length=Npoints)
     V_values = range(V0, stop=Vf, length=Npoints)
 
-
-    measures = ["E_p", "E_p_bits", "S", "coherence", "E_GS", "m_cdw", "m_sdw"]
+    measures = ["E_p", "E_p_bits", "S", "coh_1rdm", "coh_2rdm", "Q_2", "E_GS", "m_cdw", "m_sdw"]
     scalars = []
 
     for U in U_values
@@ -84,7 +82,7 @@ let
                 info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
                 filename = joinpath(results, replace(info_input, "XXXXX" => measure))               
 
-                println("Searching for file: ", filename) # ADD THIS LINE FOR DEBUGGING
+                println("Searching for file: ", filename)
                 # println(filename)
 
                 if isfile(filename)
@@ -104,7 +102,6 @@ let
             push!(vector_data, NamedTuple(row_data))
         end
     end
-
     df_vec = DataFrame(vector_data)
 
     println(first(df_vec, 10))

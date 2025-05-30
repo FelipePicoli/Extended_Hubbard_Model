@@ -5,9 +5,6 @@ model='EHM_Itensor'
 
 exec_name=$model'_'${code}
 
-# code for creating a dataframe with the scalar results
-script='organize_data_phase_diagram'
-
 # Gets the directory of this script
 script_dir=$(dirname "$(realpath "$0")")
 # Define the project root
@@ -23,7 +20,7 @@ path_results_final=$path_results${exec_name}
 
 exec_file=${dir_folder}'src/code_'${exec_name}'.jl'
 
-exec_script=${dir_folder}'src/'${script}'.jl'
+exec_script=${dir_folder}'src/script_'${exec_name}'.jl'
 
 echo "Project Root: $project_root"
 echo "Results Path: $path_results_tmp"
@@ -45,7 +42,7 @@ m=10
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 5
+for L in 5 6
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
