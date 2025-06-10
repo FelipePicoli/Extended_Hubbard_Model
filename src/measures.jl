@@ -1,34 +1,18 @@
 using LinearAlgebra
 # Von Neumann entropy in bits - configuration space.#
-function S(rdm, L)
-
-    println("trace (rho) = ", tr(rdm))
-    println("ishermitian(rho) = ", ishermitian(rdm))
-
-    lambdas = eigvals(rdm)
-    S_bit = 0
-    S = 0
-    #=
-    println("eigenvals = ", lambdas)
-    println("eigenvals / L= ", lambdas / L)
-    println("sum(eigvals) = ", sum(real(lambdas)))
-    =#
-    for lambda in lambdas
-        lambda = real(lambda) 
-        # S -= lambda * log2(lambda)
-        # CRITICAL: Handle lambda <= 0 for log2
-        if lambda > 1e-15 # A small threshold to avoid errors with log2
-            S_bit -= lambda * log2(lambda)
-            S -= lambda * log(lambda)
-        end
-    end 
-    return S, S_bit
+#
+function von_neumann_entropy(rho; atol=1e-12)
+    vals = eigen(Hermitian(rho)).values
+    vals = vals[vals .> atol]
+    return -sum(vals .* log.(vals)), -sum(vals .* log2.(vals))
 end
 
-function quantum_coherence(rho, L)
+function quantum_coherence(rho)
+    dim = size(rho)[1]
     C = 0.0
-    for i in 1:(2*L)
-        for j in (i+1):(2*L)
+    for i in 1:dim
+        for j in (i+1):dim
+            # maybe return here and force hermitian()
             C += abs(rho[i, j])
         end
     end

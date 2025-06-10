@@ -9,6 +9,7 @@
 =#
 using ITensors
 using ITensorMPS
+using Random
 #=
     Generates the MPO for the EHM Hamiltonian 
     with strengths J, U and V. 
@@ -31,19 +32,19 @@ function H_EHM(N, J, U, V, sites)
     end
     return MPO(os, sites)
 end
+
 #=
-=#
-function build_1_particle_rdm(psi) 
-    L = length(psi)
+function build_1_particle_rdm(state) 
+    L = length(state)
     #=  
         N and not L since any site can have spin up or down
     =#
     rho_1 = zeros(ComplexF64, 2*L, 2*L) 
 
-    Cupup = correlation_matrix(psi, "Cdagup", "Cup")
-    Cdndn = correlation_matrix(psi, "Cdagdn", "Cdn")
-    Cupdn = correlation_matrix(psi, "Cdagup", "Cdn")
-    Cdnup = correlation_matrix(psi, "Cdagdn", "Cup")   
+    Cupup = correlation_matrix(state, "Cdagup", "Cup")
+    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
+    Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
+    Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
 
     for i in 1:L
         for j in 1:L
@@ -59,63 +60,128 @@ function build_1_particle_rdm(psi)
             rho_1[i_dn, j_dn] = Cdndn[i,j]
         end 
     end
-    rho_1 = rho_1 / L
+    return rho_1 = rho_1 / L
 end
+=#
 
-function spin_correlators_mpo(state, sites, i, j, l, k)
-    spins = ["up", "dn"]
 
-    matrix_block = zeros(ComplexF64, 4, 4)
-
-    for i_spin in 1:2
-        for j_spin in 1:2
-            
-            row = 2 * (i_spin - 1) + j_spin
-
-            for l_spin in 1:2
-                for k_spin in 1:2
-
-                    col = 2 * (l_spin - 1) + k_spin
-
-                    ampo_op = OpSum()
-
-                    ampo_op += "Cdag" * spins[i_spin], i, "Cdag" * spins[j_spin], j,
-                                "C" * spins[l_spin], l, "C" * spins[k_spin], k
-
-                    O_mpo = MPO(ampo_op, sites)
-                    
-                    matrix_block[row, col] = inner(prime(state), O_mpo, state)
-                    
-                end
-            end
-        end
-    end
-    return matrix_block
-end
-
-function build_2_particle_rdm(state, sites)
-
-    L = length(state)
-    rho_2 = zeros(ComplexF64, (2*L)^2, (2*L)^2) 
+function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
     
-    # (L^2) x (L^2) blocks of spin correlators.
-    for i in 1:L 
-        for j in 1:L 
-            for l in 1:L 
-                for k in 1:L
-                    
-                    block_spin_correlators = spin_correlators_mpo(state, sites, i, j, l, k)
+    L = length(state) 
 
-                    # Compute block position
-                    row_block = 2*(i-1)*L + 2*(j-1)
-                    col_block = 2*(l-1)*L + 2*(k-1)
+    if isnothing(bulk_range)
+        bulk_range = (L ÷ 4 + 1):(3*L ÷ 4)
+    end
 
-                    # Fill in the 4x4 block
-                    rho_2[row_block+1:row_block+4, col_block+1:col_block+4] = block_spin_correlators
+    Cupup = correlation_matrix(state, "Cdagup", "Cup")
+    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
+    Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
+    Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
+
+    bulk_sites = collect(bulk_range)
+    L_b = length(bulk_sites)
+
+    rho_bulk = zeros(ComplexF64, 2*L_b, 2*L_b)
+
+    for (bi, i) in enumerate(bulk_sites)
+        for (bj, j) in enumerate(bulk_sites)
+            i_up = 2 * (bi - 1) + 1
+            i_dn = 2 * (bi - 1) + 2
+            j_up = 2 * (bj - 1) + 1
+            j_dn = 2 * (bj - 1) + 2
+
+            rho_bulk[i_up, j_up] = Cupup[i, j]
+            rho_bulk[i_dn, j_dn] = Cdndn[i, j]
+            rho_bulk[i_up, j_dn] = Cupdn[i, j]
+            rho_bulk[i_dn, j_up] = Cdnup[i, j]
+        end
+    end
+
+    # Total number of particles in the bulk
+    N_bulk = sum(up[bulk_sites]) + sum(dn[bulk_sites])
+
+    # Normalize so Tr[rho_bulk] = 1
+    rho_bulk ./= N_bulk
+
+    return rho_bulk, N_bulk
+end
+
+function two_fermion_basis_pairs(L)
+    num_modes = 2 * L
+    pairs = []
+    for m1 in 1:num_modes
+        for m2 in (m1 + 1):num_modes
+            push!(pairs, (m1, m2))
+        end
+    end
+    return pairs
+end
+function mode_to_site_spin(m::Int)
+    site = (m + 1) ÷ 2
+    spin = isodd(m) ? "up" : "dn"
+    return site, spin
+end
+
+function build_2_particle_rdm(phi, sites)
+
+    L = length(phi)
+
+    pairs = two_fermion_basis_pairs(L)
+
+    dim = length(pairs)
+
+    @show dim
+
+    rho_2 = zeros(ComplexF64, dim, dim)
+
+    for (p, (i, j)) in enumerate(pairs)
+        @show (p, (i, j))
+
+        i_site, i_spin = mode_to_site_spin(i)
+        j_site, j_spin = mode_to_site_spin(j)
+
+        # @show (mode_to_site_spin(i), mode_to_site_spin(j))
+
+        for (q, (k, l)) in enumerate(pairs)
+
+            os = OpSum() 
+
+            @show (q, (k, l))
+
+            k_site, k_spin = mode_to_site_spin(k)
+            l_site, l_spin = mode_to_site_spin(l)
+
+            # @show (mode_to_site_spin(k), mode_to_site_spin(l))
+
+            os -= "Cdag"*i_spin, i_site, "Cdag"*j_spin, j_site, "C"*k_spin, k_site, "C"*l_spin, l_site
+
+            O_mpo = MPO(os, sites)
+
+            rho_2[p, q] = inner(phi', O_mpo, phi)
+        end
+    end
+
+    is_hermitian = true
+    tolerances = [1e-12, 1e-13, 1e-14, 1e-16, 1e-18, 1e-22]
+    for tolerance in tolerances
+        for k in 1:dim
+            for l in k:dim
+                if abs(rho_2[k,l] - conj(rho_2[l,k])) > tolerance
+                    println("Non-Hermitian element found at ($k, $l)")
+                    is_hermitian = false
                 end
             end
         end
+        if is_hermitian
+            println("rho_2 Hermitian for tolerance $tolerance.")
+        else
+            println("rho_2 NOT Hermitian for tolerance $tolerance.")
+        end
     end
+    # @pt rho_2
+    @show tr(rho_2)
+    rho_2 = (2 / (L*(L-1))) * rho_2
+    @show tr(rho_2)
     return rho_2
 end
 
@@ -169,6 +235,7 @@ function random_sdw_state(L, Nup, Ndn)
     end
     return state 
 end
+
 
 function random_ps_state(L, Nup, Ndn)
     state = fill("Emp", L)

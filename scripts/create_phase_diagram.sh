@@ -28,33 +28,33 @@ echo "Results Path: $path_results_final"
 
 
 # Simulation parameters 
-U0=-6.0
+U0=0.0
 Uf=6.0
 
-V0=-4.0
+V0=0.0
 Vf=4.0
 
 # DMRG parameters
 Npoints=50
-nsweeps=10
-m=10
+nsweeps=20
+m=20
 
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 5 6
+for L in 6 5
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
 
     # Create/clear tmp folder
-    rm -rf "$path_results_tmp"
+    # rm -rf "$path_results_tmp"
     mkdir -p "$path_results_tmp"
 
     # Running simulations
     #
     echo "Starting simulations"
-    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
+    # julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
     echo "Simulation ended"
     echo "Setting up the data"
 
@@ -66,8 +66,8 @@ do
     if compgen -G "$path_results_tmp/*.csv" > /dev/null; then
         mv "$path_results_tmp"/*.csv "$path_results_final"
         echo "CSV files moved to: $path_results_final"
-        rm -rf "$path_results_tmp"
-        echo "Temporary files cleaned up."
+        # rm -rf "$path_results_tmp"
+        # echo "Temporary files cleaned up."
     else
         echo "WARNING: No CSV files found in $path_results_tmp. Skipping move and cleanup."
     fi

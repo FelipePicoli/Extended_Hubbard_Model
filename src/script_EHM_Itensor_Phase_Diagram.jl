@@ -7,6 +7,7 @@ using CSV
 
 using Printf
 
+
 include("parser.jl")
 
 let
@@ -30,12 +31,12 @@ let
     U_values = range(U0, stop=Uf, length=Npoints)
     V_values = range(V0, stop=Vf, length=Npoints)
 
-    measures = ["E_p", "E_p_bits", "S", "coh_1rdm", "coh_2rdm", "Q_2", "E_GS", "m_cdw", "m_sdw"]
+    measures = ["E_p", "E_p_bits", "S", "Q_2", "Q_2_bits", "E_GS", "m_cdw", "m_sdw", "coh_1rdm", "coh_2rdm"]
     scalars = []
 
-    for U in U_values
-        for V in V_values
-            
+    for (i, U) in enumerate(U_values)
+        for (j, V) in enumerate(V_values)
+
             scalar_data = Dict{Symbol, Float64}()
             scalar_data[:U] = U
             scalar_data[:V] = V
@@ -58,7 +59,6 @@ let
                 end
                 scalar_data[Symbol(measure)] = val
             end
-
             push!(scalars, NamedTuple(scalar_data))
         end
     end
@@ -68,11 +68,11 @@ let
     info_output = joinpath(results, "scalars_$(model)_$(code)_L=$(L)_NPoints=$(Npoints).csv")
     CSV.write(info_output, df)
 
-    vec_measures = ["magnetization", "charge_density"]
+    vec_measures = ["magnetization", "charge_density", "doublons"]
     vector_data = []
 
-    for U in U_values
-        for V in V_values
+    for (i, U) in enumerate(U_values)
+        for (j, V) in enumerate(V_values)
 
             row_data = Dict{Symbol, Any}()
             row_data[:U] = U
@@ -102,6 +102,7 @@ let
             push!(vector_data, NamedTuple(row_data))
         end
     end
+
     df_vec = DataFrame(vector_data)
 
     println(first(df_vec, 10))

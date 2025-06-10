@@ -31,8 +31,6 @@ let
     U = parser["U0"]
     V = parser["V0"]
 
-    Npoints = parser["Npoints"]
-
     # dmrg parameters 
     nsweeps = parser["nsweeps"]
     m = parser["m"]
@@ -97,7 +95,7 @@ let
     E_p, E_p_bits = E_p - log(L), E_p_bits - log2(L)
     corr = quantum_coherence(rho_1, L)
 
-    info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
+    info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f.txt", model, L, U, V)
 
     filename = joinpath(results, replace(info_input, "XXXXX" => "charge_density"))
     writedlm(filename, charge_density)
@@ -120,7 +118,7 @@ let
     filename = joinpath(results, replace(info_input, "XXXXX" => "S"))
     writedlm(filename, avg_ss_entanglement)
 
-    filename = joinpath(results, replace(info_input, "XXXXX" => "coh"))
+    filename = joinpath(results, replace(info_input, "XXXXX" => "coh_1rdm"))
     writedlm(filename, corr)
 
     filename = joinpath(results, replace(info_input, "XXXXX" => "m_sdw"))
