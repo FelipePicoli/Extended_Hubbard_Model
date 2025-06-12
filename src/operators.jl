@@ -66,7 +66,6 @@ end
 
 
 function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
-    
     L = length(state) 
 
     if isnothing(bulk_range)
@@ -74,9 +73,9 @@ function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
     end
 
     Cupup = correlation_matrix(state, "Cdagup", "Cup")
-    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
     Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
     Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
+    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
 
     bulk_sites = collect(bulk_range)
     L_b = length(bulk_sites)
@@ -96,13 +95,8 @@ function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
             rho_bulk[i_dn, j_up] = Cdnup[i, j]
         end
     end
-
-    # Total number of particles in the bulk
     N_bulk = sum(up[bulk_sites]) + sum(dn[bulk_sites])
-
-    # Normalize so Tr[rho_bulk] = 1
     rho_bulk ./= N_bulk
-
     return rho_bulk, N_bulk
 end
 
@@ -256,6 +250,27 @@ function random_ps_state(L, Nup, Ndn)
     elseif Ndn > 0
         state[next_site] = "Dn"
         next_site += 1
+    end
+    return state
+end
+
+function state_ehm_diagram(L, Nup, Ndn, U, V; epsilon=1e-2)
+
+    state = fill("Emp", L)
+    if (abs(V + 1.5 * epsilon) >= 0 && abs(U + 1.5*epsilon) >= 0 || 
+        (V + 1.5 * epsilon < 0 && U + 1.5*epsilon < 0))
+        println("Metallic") 
+        state = random_metallic_state(L, Nup, Ndn)
+    elseif ((abs(V) >= abs(2 * U + epsilon)) || 
+        (V > 0 && U < 0)) 
+        state = random_cdw_state(L, Nup, Ndn)
+        println("CDW") 
+    elseif (abs(V) < abs(2 * U + epsilon)) 
+        state = random_sdw_state(L, Nup, Ndn)
+        println("SDW")
+    else
+        state = random_ps_state(L, Nup, Ndn)
+        println("PS")
     end
     return state
 end

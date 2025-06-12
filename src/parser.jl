@@ -46,7 +46,9 @@ function parse_commandline()
             help = "(DMRG Parameters) bond dimension."
             default = 10
             arg_type = Int
-
+        "--pairs"
+            help = "Only run pairs of U and V"
+            default = false"
     end
     return parse_args(s)
 end

@@ -1,9 +1,6 @@
 #= 
     DMRG for various U and V for the exteded Hubbard model.
 =#
-#=
-    Implement argparser inputs 
-=#
 using ITensors
 using ITensorMPS
 
@@ -17,7 +14,6 @@ using CSV
 using Printf
 
 using PrettyTables
-
 
 let
     include("operators.jl")
@@ -52,34 +48,18 @@ let
     Ndn = L - Nup 
 
     # Correction to BOW phase which i'm not considering.
-    epsilon = 10e-2 
+    # Runing small values for now...
+    #
+    #
+    sites = siteinds("Electron", L; conserve_qns=true)
 
     for (i, U) in enumerate(U_values)
         for (j, V) in enumerate(V_values)
-            #=
-                Add check if files with Uf and Vf already exists. 
-            =#
-            @show (i, U), (j, V)
 
-            sites = siteinds("Electron", L; conserve_qns=true)
             H = H_EHM(L, J, U, V, sites)
-            state = fill("Emp", L)
 
-            if (abs(V + 1.5 * epsilon) >= 0 && abs(U + 1.5*epsilon) >= 0 || 
-                (V + 1.5 * epsilon < 0 && U + 1.5*epsilon < 0))
-                println("Metallic") 
-                state = random_metallic_state(L, Nup, Ndn)
-            elseif ((abs(V) >= abs(2 * U + epsilon)) || 
-                (V > 0 && U < 0)) 
-                state = random_cdw_state(L, Nup, Ndn)
-                println("CDW") 
-            elseif (abs(V) < abs(2 * U + epsilon)) 
-                state = random_sdw_state(L, Nup, Ndn)
-                println("SDW")
-            else
-                state = random_ps_state(L, Nup, Ndn)
-                println("PS")
-            end
+            state = state_ehm_diagram(L, Nup, Ndn, U, V)
+
             psi0 = random_mps(sites, state; linkdims=m)
 
             # Start DMRG calculation:
@@ -101,7 +81,7 @@ let
                 Implementation of the single-site entanglement 
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
-            avg_ss_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
+            single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
             # Reduced density matrix computations
 
@@ -122,59 +102,27 @@ let
             # @show flux(psi)
             coh_2rdm = quantum_coherence(rho_2)
 
-            info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "charge_density"))
-            writedlm(filename, charge_density)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "magnetization"))
-            writedlm(filename, magnetization)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "doublons"))
-            writedlm(filename, updn)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "E_GS"))
-            writedlm(filename, energy)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "E_p"))
-            writedlm(filename, E_p_bulk)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "E_p_bits"))
-            writedlm(filename, E_p_bulk_bits)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "S"))
-            writedlm(filename, avg_ss_entanglement)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "coh_1rdm"))
-            writedlm(filename, coh_1rdm)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "coh_2rdm"))
-            writedlm(filename, coh_2rdm)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "Q_2"))
-            writedlm(filename, Q_2)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "Q_2_bits"))
-            writedlm(filename, Q_2_bits)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "m_sdw"))
-            writedlm(filename, op_m_sdw)
-
-            filename = joinpath(results, replace(info_input, "XXXXX" => "m_cdw"))
-            writedlm(filename, op_m_cdw)
-            #=      
+            store_EHM_GS_measures_results(model, L, U, V, charge_density, 
+                                                                magnetization,
+                                                                updn,
+                                                                energy,
+                                                                E_p_bulk, 
+                                                                E_p_bulk_bits,
+                                                                single_site_entanglement,
+                                                                coh_1rdm,
+                                                                coh_2rdm,
+                                                                Q_2, 
+                                                                Q_2_bits,
+                                                                op_m_sdw,
+                                                                op_m_cdw, 
+                                                                NPoints)
+            #=
                 Free up memory. 
             =# 
             H = nothing
             psi0 = nothing
             psi = nothing
-            rho_1 = nothing
-            rho_2 = nothing
             GC.gc()
-            end
         end
-    filename = joinpath(results, "U_vals_NPoints=$(Npoints).txt")
-    writedlm(filename, U_values)
-    filename = joinpath(results, "V_vals_NPoints=$(Npoints).txt")
-    writedlm(filename, V_values)
+    end
 end
