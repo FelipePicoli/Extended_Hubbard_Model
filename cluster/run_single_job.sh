@@ -6,7 +6,7 @@ U0=-6.0
 Uf=6.0
 V0=-4.0
 Vf=4.0
-Npoints=50
+Npoints=70
 
 count_current_jobs() {
     # sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | grep "$(whoami)" | grep "RUNNING\|PENDING" | wc -l
@@ -35,8 +35,11 @@ for U_val in $U_VALUES; do
         ERROR_FILE="e_L32_U${U_val}_V${V_val}.sbatch"
 
         echo "Submitting job for U=${U_val}, V=${V_val}"
-        sbatch "${SBATCH_SCRIPT}" "${U_val}" "${V_val}" "${Npoints}"
+        sbatch "${SBATCH_SCRIPT}" "${U_val}" "${V_val}" "${Npoints}" "${L}"
         sleep 50 
     done
 done
-echo "All jobs submitted."
+
+echo "Organizing data"
+sbatch "${SBATCH_SCRIPT}" "$U0" "$Uf" "${V0}" "${Vf}" "${Npoints}" "${L}"
+echo "Finished"

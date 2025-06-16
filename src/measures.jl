@@ -1,6 +1,5 @@
 using LinearAlgebra
-# Von Neumann entropy in bits - configuration space.#
-#
+# Von Neumann entropy in bits - configuration space.
 function von_neumann_entropy(rho; atol=1e-12)
     vals = eigen(Hermitian(rho)).values
     vals = vals[vals .> atol]
@@ -32,8 +31,6 @@ function average_single_site_entanglement(L, up, dn, updn)
     end
     return Statistics.mean(single_site_entanglement)
 end 
-
-
 function m_sdw(L, Sj)
     m_sdw_val = 0.0 
     for j in 1:L 

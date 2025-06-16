@@ -28,21 +28,21 @@ echo "Results Path: $path_results_final"
 
 
 # Simulation parameters 
-U0=0.0
+U0=-6.0
 Uf=6.0
 
-V0=0.0
+V0=-4.0
 Vf=4.0
 
 # DMRG parameters
-Npoints=50
-nsweeps=20
-m=20
+Npoints=70
+nsweeps=10
+m=30
 
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 6 5
+for L in 5 6 
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
@@ -54,7 +54,7 @@ do
     # Running simulations
     #
     echo "Starting simulations"
-    # julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
+    julia $exec_file -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
     echo "Simulation ended"
     echo "Setting up the data"
 

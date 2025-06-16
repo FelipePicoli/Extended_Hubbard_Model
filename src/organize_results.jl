@@ -33,7 +33,7 @@
         - Q_2 : quantum correlations
         - Coherence 2RDM 
 =#
-function store_EHM_GS_measures_results(model, L, U, V, charge_density, 
+function store_EHM_GS_measures_results(results, model, L, U, V, charge_density, 
                                                 magnetization,
                                                 doublons,
                                                 energy,
@@ -46,7 +46,7 @@ function store_EHM_GS_measures_results(model, L, U, V, charge_density,
                                                 Q_2_bits,
                                                 m_sdw,
                                                 m_cdw, 
-                                                NPoints)
+                                                Npoints)
     
     info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
 
@@ -91,13 +91,13 @@ function store_EHM_GS_measures_results(model, L, U, V, charge_density,
 end
 
 
-function add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, U, V)
+function add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, L, U, V)
 
     row_data = Dict{Symbol, Any}()
     row_data[:U] = U
     row_data[:V] = V
 
-    for measure in vec_measures
+    for measure in vector_measures
 
         filename = joinpath(results, replace(info_input, "XXXXX" => measure))               
 
@@ -118,7 +118,7 @@ function add_vectorial_measures_to_data_frames(vectors, vector_measures, info_in
         vec = string(join(vec, ", "))
         row_data[Symbol(measure)] = vec
     end
-    push!(vector_data, NamedTuple(row_data))
+    push!(vectors, NamedTuple(row_data))
 end
 
 function add_scalar_measures_to_data_frames(scalars, measures, info_input, results, U, V)
@@ -146,7 +146,7 @@ function add_scalar_measures_to_data_frames(scalars, measures, info_input, resul
     push!(scalars, NamedTuple(scalar_data))
 end
 
-function store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only_pairs = false)
+function store_to_CSV_files(model, results, code, L, Npoints, U_values, V_values; is_only_pairs = false)
 
     scalar_measures = ["E_p", "E_p_bits", "S", "Q_2", "Q_2_bits", "E_GS", "m_cdw", "m_sdw", "coh_1rdm", "coh_2rdm"]
     scalars = []
@@ -159,21 +159,25 @@ function store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only
                 info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
 
                 add_scalar_measures_to_data_frames(scalars, scalar_measures, info_input, results, U, V)
+        end
 
-                add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, U, V)
+        for (i, U) in enumerate(U_values)
+            for (j, V) in enumerate(V_values)
+                info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
+                add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, L, U, V)
+            end 
         end
 
         df = DataFrame(scalars)
         println(first(df, 30))
         info_output = joinpath(results, "scalars_$(model)_$(code)_L=$(L)_NPoints=$(Npoints)_pairs.csv")
         CSV.write(info_output, df)
-
-        df_vec = DataFrame(vector_data)
+        
+        df_vec = DataFrame(vectors)
 
         println(first(df_vec, 10))
-        info_output_vec = joinpath(results, "vector_measures_$(model)_$(code)_L=$(L)_NPoints=$(Npoints)_pairs.csv")
+        info_output_vec = joinpath(results, "vector_measures_$(model)_$(code)_L=$(L)_NPoints=$(Npoints).csv")
         CSV.write(info_output_vec, df_vec)
-
     else 
         for (i, U) in enumerate(U_values)
             for (j, V) in enumerate(V_values)
@@ -181,7 +185,7 @@ function store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only
 
                 add_scalar_measures_to_data_frames(scalars, scalar_measures, info_input, results, U, V)
 
-                add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, U, V)
+                add_vectorial_measures_to_data_frames(vectors, vector_measures, info_input, results, L, U, V)
             end 
     end
         df = DataFrame(scalars)
@@ -189,7 +193,7 @@ function store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only
         info_output = joinpath(results, "scalars_$(model)_$(code)_L=$(L)_NPoints=$(Npoints).csv")
         CSV.write(info_output, df)
 
-        df_vec = DataFrame(vector_data)
+        df_vec = DataFrame(vectors)
 
         println(first(df_vec, 10))
         info_output_vec = joinpath(results, "vector_measures_$(model)_$(code)_L=$(L)_NPoints=$(Npoints).csv")

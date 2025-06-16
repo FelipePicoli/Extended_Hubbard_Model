@@ -19,6 +19,7 @@ let
     include("operators.jl")
     include("measures.jl")
     include("parser.jl")
+    include("organize_results.jl")
 
     parser = parse_commandline() 
 
@@ -49,12 +50,12 @@ let
 
     # Correction to BOW phase which i'm not considering.
     # Runing small values for now...
-    #
-    #
     sites = siteinds("Electron", L; conserve_qns=true)
 
     for (i, U) in enumerate(U_values)
         for (j, V) in enumerate(V_values)
+            
+            @show U, V 
 
             H = H_EHM(L, J, U, V, sites)
 
@@ -63,7 +64,7 @@ let
             psi0 = random_mps(sites, state; linkdims=m)
 
             # Start DMRG calculation:
-            energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
+            energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
             #=
                 Can reconstruct the densities from these three 
                 results.
@@ -77,6 +78,7 @@ let
             # compute order parameters
             op_m_cdw = abs(m_cdw(L, charge_density))
             op_m_sdw = abs(m_sdw(L, magnetization))               
+
             #= 
                 Implementation of the single-site entanglement 
                 to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
@@ -84,14 +86,13 @@ let
             single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
             # Reduced density matrix computations
-
-            rho_1, N_bulk= build_1_particle_rdm(psi, upd, dnd)
+            rho_1 = build_1_particle_rdm(psi)
 
             S_bulk, S_bulk_bits = von_neumann_entropy(rho_1)
-            E_p_bulk, E_p_bulk_bits = S_bulk - log(N_bulk), S_bulk_bits - log2(N_bulk) 
+            E_p_bulk, E_p_bulk_bits = S_bulk - log(L), S_bulk_bits - log2(L) 
 
             coh_1rdm = quantum_coherence(rho_1)
-
+            
             rho_2 = build_2_particle_rdm(psi, sites)
 
             Q_2, Q_2_bits  = von_neumann_entropy(rho_2) 
@@ -102,7 +103,7 @@ let
             # @show flux(psi)
             coh_2rdm = quantum_coherence(rho_2)
 
-            store_EHM_GS_measures_results(model, L, U, V, charge_density, 
+            store_EHM_GS_measures_results(results, model, L, U, V, charge_density, 
                                                                 magnetization,
                                                                 updn,
                                                                 energy,
@@ -115,14 +116,14 @@ let
                                                                 Q_2_bits,
                                                                 op_m_sdw,
                                                                 op_m_cdw, 
-                                                                NPoints)
+                                                                Npoints)
             #=
                 Free up memory. 
-            =# 
             H = nothing
             psi0 = nothing
             psi = nothing
             GC.gc()
+            =# 
         end
     end
 end

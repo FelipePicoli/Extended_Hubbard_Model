@@ -38,6 +38,7 @@ function parse_commandline()
             help = "Number of points in a mesh grid for a phase diagram with U x V. 
                     It makes a list with V_values = range(V0, stop=Vf, length=Npoints)"
             arg_type = Int
+            default = 50
         "--nsweeps"
             help = "(DMRG Parameters) Number of sweeps."
             default = 6
@@ -48,7 +49,8 @@ function parse_commandline()
             arg_type = Int
         "--pairs"
             help = "Only run pairs of U and V"
-            default = false"
+            default = 0 
+            arg_type = Int
     end
     return parse_args(s)
 end

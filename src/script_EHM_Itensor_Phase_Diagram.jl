@@ -5,8 +5,10 @@ using DelimitedFiles
 using DataFrames
 using CSV
 using Printf
+
 include("parser.jl")
 include("organize_results.jl")
+
 let
     parser = parse_commandline()
 
@@ -30,9 +32,9 @@ let
 
     pairs = parser["pairs"]
     
-    if(pairs)
-        store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only_pairs = true)
+    if(pairs == 1)
+        store_to_CSV_files(model, results, code, L, Npoints, U_values, V_values, is_only_pairs = true)
     else
-        store_to_CSV_files(model, results, Npoints, U_values, V_values, is_only_pairs = false)
+        store_to_CSV_files(model, results, code, L, Npoints, U_values, V_values, is_only_pairs = false)
     end
 end

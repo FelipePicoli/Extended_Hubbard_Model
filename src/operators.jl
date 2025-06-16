@@ -33,7 +33,6 @@ function H_EHM(N, J, U, V, sites)
     return MPO(os, sites)
 end
 
-#=
 function build_1_particle_rdm(state) 
     L = length(state)
     #=  
@@ -48,23 +47,17 @@ function build_1_particle_rdm(state)
 
     for i in 1:L
         for j in 1:L
-            # Blocks of the correlation matrix.
-            i_up = 2 * (i-1) + 1 
-            i_dn = 2 * (i-1) + 2
-            j_up = 2 * (j-1) + 1
-            j_dn = 2 * (j-1) + 2
 
-            rho_1[i_up, j_up] = Cupup[i,j]
-            rho_1[i_up, j_dn] = Cupdn[i,j]
-            rho_1[i_dn, j_up] = Cdnup[i,j]
-            rho_1[i_dn, j_dn] = Cdndn[i,j]
+            rho_1[i, j] = Cupup[i,j]
+            rho_1[i, j + L] = Cupdn[i,j]
+            rho_1[i + L, j] = Cdnup[i,j]
+            rho_1[i + L, j + L] = Cdndn[i,j]
         end 
     end
     return rho_1 = rho_1 / L
 end
-=#
 
-
+#=
 function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
     L = length(state) 
 
@@ -99,6 +92,7 @@ function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
     rho_bulk ./= N_bulk
     return rho_bulk, N_bulk
 end
+=#
 
 function two_fermion_basis_pairs(L)
     num_modes = 2 * L
@@ -257,20 +251,48 @@ end
 function state_ehm_diagram(L, Nup, Ndn, U, V; epsilon=1e-2)
 
     state = fill("Emp", L)
-    if (abs(V + 1.5 * epsilon) >= 0 && abs(U + 1.5*epsilon) >= 0 || 
-        (V + 1.5 * epsilon < 0 && U + 1.5*epsilon < 0))
-        println("Metallic") 
+    
+    region = get_region(U, V)
+
+    # Weak coupling = metallic
+    if region == "METALLIC" 
         state = random_metallic_state(L, Nup, Ndn)
-    elseif ((abs(V) >= abs(2 * U + epsilon)) || 
-        (V > 0 && U < 0)) 
+    # CDW
+    elseif region == "CDW"
         state = random_cdw_state(L, Nup, Ndn)
-        println("CDW") 
-    elseif (abs(V) < abs(2 * U + epsilon)) 
+    elseif region == "SDW"
         state = random_sdw_state(L, Nup, Ndn)
-        println("SDW")
     else
         state = random_ps_state(L, Nup, Ndn)
-        println("PS")
     end
     return state
+end
+
+function get_region(u, v)
+
+    alpha = 0.5
+
+    # Boundary functions
+    get_metallic_lower_boundary(u) = u <= 0 ? -exp(alpha * u) : -alpha * u - 1.0
+    get_metallic_upper_boundary_h(u) = -0.1 * u
+    get_metallic_upper_boundary_negative(u) = -2.5 * alpha * u
+
+    lower = get_metallic_lower_boundary(u)
+    upper_h = get_metallic_upper_boundary_h(u)
+    upper_neg = get_metallic_upper_boundary_negative(u)
+
+    if v <= lower
+        return "PS"
+    elseif (u < 0 && v < 0 && v > lower) ||
+           (u > 0 && v > 0 && v < upper_h) ||
+           (u > 0 && v < 0 && v > lower && v < upper_neg)
+        return "METALLIC"
+    elseif (u < 0 && v > 0) ||
+           (u > 0 && v > 0 && v >= 2 * u)
+        return "CDW"
+    elseif (u > 0 && v < 0 && v > lower) ||
+           (u > 0 && v > 0 && v >= upper_h && v < 2 * u)
+        return "SDW"
+    end
+    return "PS"
 end
