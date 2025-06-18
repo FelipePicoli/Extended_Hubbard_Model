@@ -33,6 +33,14 @@ function H_EHM(N, J, U, V, sites)
     return MPO(os, sites)
 end
 
+
+#= 
+    Builds the 1-particle reduced density matrix. 
+    
+    This matrix depends on just two correlators so it is 
+    easily implemented by the correlation_matrix from ITensorMPS. 
+
+=#
 function build_1_particle_rdm(state) 
     L = length(state)
     #=  
@@ -94,6 +102,10 @@ function build_1_particle_rdm(state, up, dn, bulk_range=nothing)
 end
 =#
 
+#=
+    Create the basis for pairs of spins 
+    1 = (1, up) , 2 = (1, dn), 3 = (2, up), ...
+=#
 function two_fermion_basis_pairs(L)
     num_modes = 2 * L
     pairs = []
@@ -104,16 +116,29 @@ function two_fermion_basis_pairs(L)
     end
     return pairs
 end
+
+#=
+    Gets the indexed site and spin.
+=#
 function mode_to_site_spin(m::Int)
     site = (m + 1) ÷ 2
     spin = isodd(m) ? "up" : "dn"
     return site, spin
 end
+#= 
+    Returns a two-particle reduced density matrix. 
 
+    This function computes only the part of the matrix in which 
+    all of the correlators are different. 
+    
+    Tolerance of the julia language packages are very low, so in general
+    this computation gives various non-hermitian matrices. 
+=#
 function build_2_particle_rdm(phi, sites)
 
     L = length(phi)
-
+    
+    # Basis for pairs of fermions.
     pairs = two_fermion_basis_pairs(L)
 
     dim = length(pairs)
@@ -248,7 +273,11 @@ function random_ps_state(L, Nup, Ndn)
     return state
 end
 
-function state_ehm_diagram(L, Nup, Ndn, U, V; epsilon=1e-2)
+
+#= 
+    Returns a state for the point (U, V) of the Extended Hubbard Model.
+=#
+function state_ehm_diagram(L, Nup, Ndn, U, V)
 
     state = fill("Emp", L)
     
@@ -268,6 +297,13 @@ function state_ehm_diagram(L, Nup, Ndn, U, V; epsilon=1e-2)
     return state
 end
 
+#= 
+    Trying to separate the phase-diagram states not only 
+    in big squared blocks.
+    See notebook EHM_phase_diagram.ipynb for an example of plot 
+    using this function. I try to made it look like the plot schematic 
+    diagram for the EHM. 
+=#
 function get_region(u, v)
 
     alpha = 0.5

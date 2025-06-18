@@ -59,8 +59,10 @@ let
 
             H = H_EHM(L, J, U, V, sites)
 
+            #= 
+                The best state for variational step of the DMRG algorithm.
+            =#
             state = state_ehm_diagram(L, Nup, Ndn, U, V)
-
             psi0 = random_mps(sites, state; linkdims=m)
 
             # Start DMRG calculation:
