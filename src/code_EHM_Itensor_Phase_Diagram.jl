@@ -18,8 +18,10 @@ using PrettyTables
 let
     include("operators.jl")
     include("measures.jl")
-    include("parser.jl")
-    include("organize_results.jl")
+    incluce("states_dmrg_GS.jl")
+
+    include("script_argparser.jl")
+    include("script_organize_results.jl")
 
     parser = parse_commandline() 
 
@@ -82,16 +84,16 @@ let
             op_m_sdw = abs(m_sdw(L, magnetization))               
 
             #= 
-                Implementation of the single-site entanglement 
-                to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
+                Implementation of average single-site entanglement 
+                    S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
             =#
             single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
             # Reduced density matrix computations
             rho_1 = build_1_particle_rdm(psi)
 
-            S_bulk, S_bulk_bits = von_neumann_entropy(rho_1)
-            E_p_bulk, E_p_bulk_bits = S_bulk - log(L), S_bulk_bits - log2(L) 
+            S, S_bits = von_neumann_entropy(rho_1)
+            E_p, E_p_bits = S - log(L), S_bits - log2(L) 
 
             coh_1rdm = quantum_coherence(rho_1)
             
@@ -109,8 +111,8 @@ let
                                                                 magnetization,
                                                                 updn,
                                                                 energy,
-                                                                E_p_bulk, 
-                                                                E_p_bulk_bits,
+                                                                E_p, 
+                                                                E_p_bits,
                                                                 single_site_entanglement,
                                                                 coh_1rdm,
                                                                 coh_2rdm,
@@ -119,13 +121,11 @@ let
                                                                 op_m_sdw,
                                                                 op_m_cdw, 
                                                                 Npoints)
-            #=
-                Free up memory. 
+            # Free up memory 
             H = nothing
             psi0 = nothing
             psi = nothing
             GC.gc()
-            =# 
         end
     end
 end

@@ -19,7 +19,11 @@ using PrettyTables
 let
     include("operators.jl")
     include("measures.jl")
-    include("parser.jl")
+    
+    incluce("states_dmrg_GS.jl")
+
+    include("script_organize_results.jl")
+    include("script_argparser.jl")
 
     parser = parse_commandline() 
 
@@ -66,18 +70,18 @@ let
     # compute order parameters
     op_m_cdw = abs(m_cdw(L, charge_density))
     op_m_sdw = abs(m_sdw(L, magnetization))               
+
     #= 
-        Implementation of the single-site entanglement 
-        to be compared with the form of S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
+        Implementation of average single-site entanglement 
+        S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
     =#
     single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
     # Reduced density matrix computations
+    rho_1 = build_1_particle_rdm(psi)
 
-    rho_1, N_bulk= build_1_particle_rdm(psi, upd, dnd)
-
-    S_bulk, S_bulk_bits = von_neumann_entropy(rho_1)
-    E_p_bulk, E_p_bulk_bits = S_bulk - log(N_bulk), S_bulk_bits - log2(N_bulk) 
+    S, S_bits = von_neumann_entropy(rho_1)
+    E_p, E_p_bits = S - log(L), S_bits - log2(L) 
 
     coh_1rdm = quantum_coherence(rho_1)
 
@@ -95,8 +99,8 @@ let
                                                         magnetization,
                                                         updn,
                                                         energy,
-                                                        E_p_bulk, 
-                                                        E_p_bulk_bits,
+                                                        E_p, 
+                                                        E_p_bits,
                                                         single_site_entanglement,
                                                         coh_1rdm,
                                                         coh_2rdm,

@@ -19,6 +19,14 @@ function quantum_coherence(rho)
 end
 
 
+#=
+    Diagonalizes the matrix rho as 
+    rho = \sum_i e^{-\xi_i} with x_{i+1} >= x_i 
+    and returns the difference from the 
+=#
+function entanglement_gap(rho)
+
+end
 
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)
@@ -47,20 +55,4 @@ function m_cdw(L, nj)
     end
     return m_cdw_val / L 
 end 
-#=
-    Returns the density of up and down 
-    electrons.
-=#
-function density_operators(N, psi, sites)
-    upd = fill(0.0, N)
-    dnd = fill(0.0, N)
-    updn = fill(0.0, N) 
-    for j in 1:N
-        orthogonalize!(psi, j)
-        psidag_j = dag(prime(psi[j], "Site"))
-        upd[j] = scalar(psidag_j * op(sites, "Nup", j) * psi[j])
-        dnd[j] = scalar(psidag_j * op(sites, "Ndn", j) * psi[j])
-        updn[j] = scalar(psidag_j * op(sites, "Nupdn", j) * psi[j])
-    end
-    return upd, dnd, updn
-end
+
