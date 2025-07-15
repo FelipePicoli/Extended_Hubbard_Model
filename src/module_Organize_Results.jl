@@ -33,6 +33,8 @@
         - Q_2 : quantum correlations
         - Coherence 2RDM 
 =#
+using Printf 
+
 function store_EHM_GS_measures_results(results, model, L, U, V, charge_density, 
                                                 magnetization,
                                                 doublons,

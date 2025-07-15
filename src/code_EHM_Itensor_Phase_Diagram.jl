@@ -16,13 +16,12 @@ using Printf
 using PrettyTables
 
 let
-    include("operators.jl")
-    include("measures.jl")
-    incluce("states_dmrg_GS.jl")
-
-    include("script_argparser.jl")
-    include("script_organize_results.jl")
-
+    include("module_Operators.jl")
+    include("module_Measures.jl")
+    include("module_Argparse.jl")
+    incluce("module_DMRG_States_GS.jl")
+    include("module_Organize_Results.jl")
+    
     parser = parse_commandline() 
 
     # model parameters
@@ -43,7 +42,7 @@ let
     # dmrg parameters 
     nsweeps = parser["nsweeps"]
     m = parser["m"]
-    maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200, 1400]
+    maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200, 1400, 1600, 1800]
     cutoff = [1E-14]
 
     Npart = floor(Int, L/2) 

@@ -6,8 +6,8 @@ using DataFrames
 using CSV
 using Printf
 
-include("parser.jl")
-include("organize_results.jl")
+include("script_argparser.jl")
+include("script_organize_results.jl")
 
 let
     parser = parse_commandline()

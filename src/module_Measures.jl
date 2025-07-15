@@ -25,7 +25,6 @@ end
     and returns the difference from the 
 =#
 function entanglement_gap(rho)
-
 end
 
 using Statistics

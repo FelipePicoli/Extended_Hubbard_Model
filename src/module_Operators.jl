@@ -64,10 +64,6 @@ function build_1_particle_rdm(state)
     end
     return rho_1 = rho_1 / L
 end
-
-
-
-
 #=
     Create the basis for pairs of spins 
     1 = (1, up) , 2 = (1, dn), 3 = (2, up), ...
@@ -109,12 +105,17 @@ function build_2_particle_rdm(phi, sites)
 
     dim = length(pairs)
 
-    @show dim
+    # @show dim
 
     rho_2 = zeros(ComplexF64, dim, dim)
-
+    
+    #= 
+        Loops through all the configurations with no repeated indices and spins, 
+        stores the elements rho_2[p, q] = <psi' | O | psi>. 
+    =#
     for (p, (i, j)) in enumerate(pairs)
-        @show (p, (i, j))
+
+        # @show (p, (i, j))
 
         i_site, i_spin = mode_to_site_spin(i)
         j_site, j_spin = mode_to_site_spin(j)
@@ -125,7 +126,7 @@ function build_2_particle_rdm(phi, sites)
 
             os = OpSum() 
 
-            @show (q, (k, l))
+            # @show (q, (k, l))
 
             k_site, k_spin = mode_to_site_spin(k)
             l_site, l_spin = mode_to_site_spin(l)
@@ -139,28 +140,12 @@ function build_2_particle_rdm(phi, sites)
             rho_2[p, q] = inner(phi', O_mpo, phi)
         end
     end
+    
+    # Force hermiticity
+    rho_2 = (rho_2 + rho_2') / 2.0
 
-    is_hermitian = true
-    tolerances = [1e-12, 1e-13, 1e-14, 1e-16, 1e-18, 1e-22]
-    for tolerance in tolerances
-        for k in 1:dim
-            for l in k:dim
-                if abs(rho_2[k,l] - conj(rho_2[l,k])) > tolerance
-                    println("Non-Hermitian element found at ($k, $l)")
-                    is_hermitian = false
-                end
-            end
-        end
-        if is_hermitian
-            println("rho_2 Hermitian for tolerance $tolerance.")
-        else
-            println("rho_2 NOT Hermitian for tolerance $tolerance.")
-        end
-    end
-    # @pt rho_2
-    @show tr(rho_2)
+    # Normalize by remaining number of particles 
     rho_2 = (2 / (L*(L-1))) * rho_2
-    @show tr(rho_2)
     return rho_2
 end
 #=

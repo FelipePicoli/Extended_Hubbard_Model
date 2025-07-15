@@ -13,17 +13,12 @@ using DataFrames
 using CSV
 using Printf
 
-using PrettyTables
-
-
 let
-    include("operators.jl")
-    include("measures.jl")
-    
-    incluce("states_dmrg_GS.jl")
-
-    include("script_organize_results.jl")
-    include("script_argparser.jl")
+    include("module_Operators.jl")
+    include("module_Measures.jl")
+    include("module_Argparse.jl")
+    incluce("module_DMRG_States_GS.jl")
+    include("module_Organize_Results.jl")
 
     parser = parse_commandline() 
 
@@ -34,13 +29,15 @@ let
     J = parser["J"]
     U = parser["U0"]
     V = parser["V0"]
+    
+    @show (U, V) 
 
     Npoints = parser["Npoints"]
 
     # dmrg parameters 
     nsweeps = parser["nsweeps"]
     m = parser["m"]
-    maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200, 1400]
+    maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200, 1400, 1600, 1800]
     cutoff = [1E-14]
 
     Npart = floor(Int, L/2) 
@@ -71,10 +68,6 @@ let
     op_m_cdw = abs(m_cdw(L, charge_density))
     op_m_sdw = abs(m_sdw(L, magnetization))               
 
-    #= 
-        Implementation of average single-site entanglement 
-        S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
-    =#
     single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
     # Reduced density matrix computations
