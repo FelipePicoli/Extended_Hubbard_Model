@@ -3,7 +3,7 @@ using LinearAlgebra
 function von_neumann_entropy(rho; atol=1e-12)
     vals = eigen(Hermitian(rho)).values
     vals = vals[vals .> atol]
-    return -sum(vals .* log.(vals)), -sum(vals .* log2.(vals))
+    return - sum(vals .* log.(vals)), - sum(vals .* log2.(vals))
 end
 
 function quantum_coherence(rho)
@@ -18,14 +18,26 @@ function quantum_coherence(rho)
     return C 
 end
 
-
 #=
     Diagonalizes the matrix rho as 
     rho = \sum_i e^{-\xi_i} with x_{i+1} >= x_i 
     and returns the difference from the 
 =#
-function entanglement_gap(rho)
+function entanglement_gap(rho; cutoff=1e-12)
+    rho = Hermitian(rho)
+    eig = eigen(rho)
+    eigvals = eig.values
+
+    sorted_indices = sortperm(eigvals, rev=true)
+    eigvals_sorted = eigvals[sorted_indices]
+
+    eigvals_clipped = max.(eigvals_sorted, cutoff)
+    entanglement_spectrum = -log.(eigvals_clipped)
+    gaps = diff(entanglement_spectrum)
+
+    return gaps, entanglement_spectrum
 end
+
 
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)

@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=SP2
 #SBATCH --nodes=1
-#SBATCH --mem=100G
+#SBATCH --mem=30G
 #SBATCH --cpus-per-task=4
-#SBATCH --time=10:00:00
+#SBATCH --time=00:30:00
 
 #SBATCH --mail-type=END
 #SBATCH --mail-user=jefter@usp.br
@@ -16,21 +16,25 @@ L=$4
 
 # Simulation parameters 
 # DMRG parameters
-nsweeps=20
-m=50
+nsweeps=35
+m=64
 
-sbatch_job_name="EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}"
-sbatch_output="o_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
-sbatch_error="e_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
+# sbatch_job_name="EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}"
+# sbatch_output="o_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
+# sbatch_error="e_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
 
-SBATCH --job-name=${SBATCH_JOB_NAME}
-SBATCH --output=${SBATCH_OUTPUT}
-SBATCH --error=${SBATCH_ERROR}
-
+# SBATCH --job-name=${SBATCH_JOB_NAME}
+# SBATCH --output=${SBATCH_OUTPUT}
+# SBATCH --error=${SBATCH_ERROR}
+#
 code='Phase_Diagram'
+
+code_name='GS_Pair_Points'
 model='EHM_Itensor'
 
 exec_name=$model'_'${code}
+
+exec_name_2=$model'_'${code_name}
 
 # code for creating a dataframe with the scalar results
 script='script_'${model}'_'${code}
@@ -46,14 +50,14 @@ path_results=${dir_folder}'results/'
 path_results_tmp=$path_results'tmp_'${exec_name}
 path_results_final=$path_results${exec_name}
 
-exec_file=${dir_folder}'src/code_'${exec_name}'.jl'
+exec_file=${dir_folder}'src/code_'${exec_name_2}'.jl'
 
 echo "Project Root: $project_root"
 echo "Results Path: $path_results_tmp"
 echo "Results Path: $path_results_final"
 echo "Exec Path: $exec_file"
 
-echo "Creating phase diagram for L="${L} 
+echo "Creating phase diagram for L="${L}
 echo "Npoints = "${Npoints}
 
 echo "Starting simulation"

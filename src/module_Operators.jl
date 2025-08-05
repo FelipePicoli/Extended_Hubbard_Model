@@ -50,15 +50,15 @@ function build_1_particle_rdm(state)
 
     Cupup = correlation_matrix(state, "Cdagup", "Cup")
     Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
+
     Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
-    Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
+    # Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
 
     for i in 1:L
         for j in 1:L
-
             rho_1[i, j] = Cupup[i,j]
             rho_1[i, j + L] = Cupdn[i,j]
-            rho_1[i + L, j] = Cdnup[i,j]
+            rho_1[i + L, j] = Cupdn[i, j]' # Cdnup[i,j]
             rho_1[i + L, j + L] = Cdndn[i,j]
         end 
     end
@@ -108,13 +108,11 @@ function build_2_particle_rdm(phi, sites)
     # @show dim
 
     rho_2 = zeros(ComplexF64, dim, dim)
-    
     #= 
         Loops through all the configurations with no repeated indices and spins, 
         stores the elements rho_2[p, q] = <psi' | O | psi>. 
     =#
     for (p, (i, j)) in enumerate(pairs)
-
         # @show (p, (i, j))
 
         i_site, i_spin = mode_to_site_spin(i)
@@ -123,29 +121,27 @@ function build_2_particle_rdm(phi, sites)
         # @show (mode_to_site_spin(i), mode_to_site_spin(j))
 
         for (q, (k, l)) in enumerate(pairs)
-
-            os = OpSum() 
-
             # @show (q, (k, l))
+           
+            os = OpSum() 
 
             k_site, k_spin = mode_to_site_spin(k)
             l_site, l_spin = mode_to_site_spin(l)
 
             # @show (mode_to_site_spin(k), mode_to_site_spin(l))
 
-            os -= "Cdag"*i_spin, i_site, "Cdag"*j_spin, j_site, "C"*k_spin, k_site, "C"*l_spin, l_site
+            os += "Cdag$i_spin", i_site, "Cdag$j_spin", j_site, "C$l_spin", l_site, "C$k_spin", k_site
 
             O_mpo = MPO(os, sites)
 
             rho_2[p, q] = inner(phi', O_mpo, phi)
         end
     end
-    
     # Force hermiticity
     rho_2 = (rho_2 + rho_2') / 2.0
 
     # Normalize by remaining number of particles 
-    rho_2 = (2 / (L*(L-1))) * rho_2
+    rho_2 = (2.0 / (L*(L-1))) * rho_2
     return rho_2
 end
 #=

@@ -19,13 +19,13 @@ Npoints=$3
 nsweeps=20
 m=50
 
-sbatch_job_name="EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}"
-sbatch_output="o_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
-sbatch_error="e_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
+#sbatch_job_name="EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}"
+#sbatch_output="o_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
+#sbatch_error="e_EHM_ITensor_Phase_Diagram_L=32_U=${U}_V=${V}.sbatch"
 
-SBATCH --job-name=${sbatch_job_name}
-SBATCH --output=${sbatch_output}
-SBATCH --error=${sbatch_error}
+#SBATCH --job-name=${sbatch_job_name}
+#SBATCH --output=${sbatch_output}
+#SBATCH --error=${sbatch_error}
 
 code='Phase_Diagram'
 model='EHM_Itensor'

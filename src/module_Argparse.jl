@@ -51,6 +51,8 @@ function parse_commandline()
             help = "Only run pairs of U and V"
             default = 0 
             arg_type = Int
+        "--region"
+            help = "Specific region to run"
     end
     return parse_args(s)
 end

@@ -26,7 +26,6 @@ echo "Project Root: $project_root"
 echo "Results Path: $path_results_tmp"
 echo "Results Path: $path_results_final"
 
-
 # Simulation parameters 
 U0=-6.0
 Uf=6.0
@@ -36,13 +35,13 @@ Vf=4.0
 
 # DMRG parameters
 Npoints=50
-nsweeps=10
-m=10
+nsweeps=20
+m=16
 
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 5 
+for L in 6
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}

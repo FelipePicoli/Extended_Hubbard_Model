@@ -6,7 +6,10 @@ U0=-6.0
 Uf=6.0
 V0=-4.0
 Vf=4.0
-Npoints=70
+Npoints=50
+
+
+L=6 
 
 count_current_jobs() {
     # sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | grep "$(whoami)" | grep "RUNNING\|PENDING" | wc -l
@@ -25,7 +28,7 @@ for U_val in $U_VALUES; do
     for V_val in $V_VALUES; do
         while [ "$(count_current_jobs)" -ge "$MAX_JOBS" ]; do
             echo "Maximum job limit reached ($MAX_JOBS). Waiting..."
-            sleep 60
+            sleep 30
             sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 10 
         done
 
