@@ -5,7 +5,6 @@ using ITensors
 using ITensorMPS
 
 using Random
-
 using ArgParse
 
 using DelimitedFiles
@@ -109,6 +108,7 @@ let
                 coh_2rdm = quantum_coherence(rho_2)
 
                 gaps_2rdm, xis_2rdm = entanglement_gap(rho_2) 
+
 
                 store_EHM_GS_measures_results(results, model, L, U, V, charge_density, 
                                                                     magnetization,

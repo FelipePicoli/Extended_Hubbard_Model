@@ -182,9 +182,10 @@ end
 =#
 function store_to_CSV_files(model, results, code, L, Npoints, U_values, V_values; is_only_pairs = false)
 
-    scalar_measures = ["E_p", "E_p_bits", "S", "Q_2", "Q_2_bits", "gaps_2rdm", 
-                        "xis_2rdm", "gaps_2rdm", "xis_2rdm",
-                        "E_GS", "m_cdw", "m_sdw", "coh_1rdm", "coh_2rdm"]
+    scalar_measures = [
+                       "E_p", "E_p_bits","gaps_1rdm",  "coh_1rdm", "xis_1rdm",
+                       "Q_2", "Q_2_bits", "coh_2rdm", "gaps_2rdm", "xis_2rdm",
+                        "S", "E_GS", "m_cdw", "m_sdw" ]
     scalars = []
 
     vector_measures = ["magnetization", "charge_density", "doublons"]

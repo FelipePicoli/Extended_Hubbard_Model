@@ -54,6 +54,7 @@ let
 
     # Start DMRG calculation:
     energy, psi = dmrg(H, psi0; nsweeps, maxdim, cutoff)
+
     #=
         Can reconstruct the densities from these three 
         results.
