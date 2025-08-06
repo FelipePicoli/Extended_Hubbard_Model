@@ -1,9 +1,7 @@
 include("module_Operators.jl")
 using LinearAlgebra
 # Von Neumann entropy in bits = configuration space.
-function von_neumann_entropy(rho; atol=1e-12)
-    vals = eigen(Hermitian(rho)).values
-    vals = vals[vals .> atol]
+function von_neumann_entropy(vals; atol=1e-12)
     return - sum(vals .* log.(vals)), - sum(vals .* log2.(vals))
 end
 
@@ -24,10 +22,7 @@ end
     rho = \sum_i e^{-\xi_i} with x_{i+1} >= x_i 
     and returns the difference from the 
 =#
-function entanglement_gap(rho; cutoff=1e-12)
-    rho = Hermitian(rho)
-    eig = eigen(rho)
-    eigvals = eig.values
+function entanglement_gap(eigenvals; cutoff=1e-12)
 
     sorted_indices = sortperm(eigvals, rev=true)
     eigvals_sorted = eigvals[sorted_indices]
@@ -37,6 +32,17 @@ function entanglement_gap(rho; cutoff=1e-12)
     gaps = diff(entanglement_spectrum)
 
     return gaps, entanglement_spectrum
+end
+
+function entanglement_gap(eigvals; cutoff=1e-12)
+
+    sorted_indices = sortperm(eigvals, rev=true)
+    eigvals_sorted = eigvals[sorted_indices]
+    eigvals_clipped = max.(eigvals_sorted, cutoff)
+
+    xis = -log.(eigvals_clipped)
+
+    return xis
 end
 
 
@@ -68,7 +74,7 @@ function m_cdw(L, nj)
     return m_cdw_val / L 
 end 
 
-function compute_GS_measures(L, sites, psi)
+function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     #=
         Can reconstruct the densities from these three 
         results.
@@ -85,32 +91,56 @@ function compute_GS_measures(L, sites, psi)
 
     #= 
         Implementation of average single-site entanglement 
-            S = 1 - (1/L) \sum_{i} Tr (rho_i^2)
+            \mathcal{L} = 1 - (1/L) \sum_{i} Tr (rho_i^2)
     =#
     single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
     # Reduced density matrix computations
+    
+
+    # one-particle RDM
+    
     rho_1 = build_1_particle_rdm(psi)
 
-    S, S_bits = von_neumann_entropy(rho_1)
-    E_p, E_p_bits = S - log(L), S_bits - log2(L) 
+    # diagonalize rho_1 
+    vals_1 = eigen(Hermitian(rho_1)).values
 
-    coh_1rdm = quantum_coherence(rho_1)
+    # Compute entanglement spectrum 
+    sorted_indices = sortperm(vals_1, rev=true)
+    eigvals_sorted = vals_1[sorted_indices]
+    eigvals_clipped = max.(eigvals_sorted, cutoff)
+    Omega_1rdm = -log.(eigvals_clipped)
 
-    gaps_1rdm, xis_1rdm = entanglement_gap(rho_1) 
+    # Shifted Von Neumann entropy 
+    pos_vals = vals_1[vals_1 .> cutoff]
+    S_1rdm, S_1rdm_bits = - sum(vals_1 .* log.(vals_1)), - sum(vals_1 .* log2.(vals_1))
+   
+    E_p, E_p_bits = S_1rdm - log(L), S_1rdm_bits - log2(L)
+    
+    # quantum coherence
+    coh_1rdm = sum(abs, rho_1) - sum(abs, diag(rho_1))
 
+    # two-particle RDM
     rho_2 = build_2_particle_rdm(psi, sites)
 
-    Q_2, Q_2_bits  = von_neumann_entropy(rho_2) 
-    Q_2, Q_2_bits  = Q_2 - log(L*(L-1)/2), Q_2_bits - log2(L*(L-1)/2)
+    # diagonalize rho_2
+    vals_2 = eigen(Hermitian(rho_2)).values
 
-    # Check number of particles
-    # @show flux(psi0)
-    # @show flux(psi)
-    coh_2rdm = quantum_coherence(rho_2)
-
-    gaps_2rdm, xis_2rdm = entanglement_gap(rho_2) 
+    # Compute entanglement spectrum 
+    sorted_indices = sortperm(vals_2, rev=true)
+    eigvals_sorted = vals_2[sorted_indices]
+    eigvals_clipped = max.(eigvals_sorted, cutoff)
+    Omega_2rdm = -log.(eigvals_clipped)
     
+    # Shifted Von Neumann
+    pos_vals = vals_2[vals_2 .> cutoff]
+    S_2rdm, S_2rdm_bits = - sum(vals_2 .* log.(vals_2)), - sum(vals_2 .* log2.(vals_2))
+
+    Q_2, Q_2_bits  = S_2rdm - log(L*(L-1)/2), S_2rdm_bits - log2(L*(L-1)/2)
+
+    # quantum coherence
+    coh_2rdm = sum(abs, rho_2) - sum(abs, diag(rho_2))
+
     dict = Dict(
         "charge_density" => charge_density, 
         "magnetization" => magnetization,
@@ -119,13 +149,11 @@ function compute_GS_measures(L, sites, psi)
         "E_p_bits" => E_p_bits,
         "single_site_entanglement" => single_site_entanglement,
         "coh_1rdm" => coh_1rdm,
-        "gaps_1rdm" => gaps_1rdm, 
-        "xis_1rdm" => xis_1rdm,
+        "Omega_1rdm" => Omega_1rdm,
         "coh_2rdm" => coh_2rdm,
         "Q_2" => Q_2, 
         "Q_2_bits" => Q_2_bits,
-        "gaps_2rdm" => gaps_2rdm, 
-        "xis_2rdm" => xis_2rdm,
+        "Omega_2rdm" => Omega_2rdm,
         "op_m_sdw" => op_m_sdw,
         "op_m_cdw" => op_m_cdw, 
     ) 

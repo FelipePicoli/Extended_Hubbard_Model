@@ -41,78 +41,15 @@ using Printf
     Stores measures for U, V point in .txt files.
 =#
 function store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
-    
-    charge_density = dict_results["charge_density"] 
-    magnetization = dict_results["magnetization"]
-    doublons = dict_results["doublons"]
-    energy = dict_results["energy"]
-    E_p = dict_results["E_p"]
-    E_p_bits = dict_results["E_p_bits"]
-    single_site_entanglement =  dict_results["single_site_entanglement"]
-    coh_1rdm = dict_results["coh_1rdm"]
-    gaps_1rdm = dict_results["gaps_1rdm"]
-    xis_1rdm = dict_results["xis_1rdm"]
-    coh_2rdm = dict_results["coh_2rdm"]
-    Q_2 = dict_results["Q_2"]
-    Q_2_bits = dict_results["Q_2_bits"]
-    gaps_2rdm = dict_results["gaps_2rdm"]
-    xis_2rdm = dict_results["xis_2rdm"]
-    m_sdw = dict_results["op_m_sdw"]
-    m_cdw = dict_results["op_m_cdw"]
+    info_template = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
 
-    info_input = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "charge_density"))
-    writedlm(filename, charge_density)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "magnetization"))
-    writedlm(filename, magnetization)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "doublons"))
-    writedlm(filename, doublons)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "E_GS"))
-    writedlm(filename, energy)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "E_p"))
-    writedlm(filename, E_p)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "E_p_bits"))
-    writedlm(filename, E_p_bits)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "S"))
-    writedlm(filename, single_site_entanglement)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "coh_1rdm"))
-    writedlm(filename, coh_1rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "gaps_1rdm"))
-    writedlm(filename, gaps_1rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "xis_1rdm"))
-    writedlm(filename, xis_1rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "coh_2rdm"))
-    writedlm(filename, coh_2rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "Q_2"))
-    writedlm(filename, Q_2)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "Q_2_bits"))
-    writedlm(filename, Q_2_bits)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "gaps_2rdm"))
-    writedlm(filename, gaps_2rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "xis_2rdm"))
-    writedlm(filename, xis_2rdm)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "m_sdw"))
-    writedlm(filename, m_sdw)
-
-    filename = joinpath(results, replace(info_input, "XXXXX" => "m_cdw"))
-    writedlm(filename, m_cdw)
+    for (key, value) in dict_results
+        filename = joinpath(results, replace(info_template, "XXXXX" => key))
+        writedlm(filename, value)
+    end
 end
+
+
 
 #= 
     Organize a list of vectorial results a.k.a magnetization, occupation, ..., into 

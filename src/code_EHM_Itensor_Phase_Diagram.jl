@@ -54,29 +54,26 @@ let
 
     for (i, U) in enumerate(U_values)
         for (j, V) in enumerate(V_values)
-            if(V < 0)
-                @show U, V 
+            @show U, V 
+            H = H_EHM(L, J, U, V, sites)
+            #= 
+                The best state for variational step of the DMRG algorithm.
+            =#
+            state = state_ehm_diagram(L, Nup, Ndn, U, V)
+            psi0 = random_mps(sites, state; linkdims=m)
 
-                H = H_EHM(L, J, U, V, sites)
-                #= 
-                    The best state for variational step of the DMRG algorithm.
-                =#
-                state = state_ehm_diagram(L, Nup, Ndn, U, V)
-                psi0 = random_mps(sites, state; linkdims=m)
+            # Start DMRG calculation:
+            energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
 
-                # Start DMRG calculation:
-                energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
+            dict_results = compute_GS_measures(L, sites, psi)
+            dict_results["energy"]  = energy
 
-                dict_results = compute_GS_measures(L, sites, psi)
-                dict_results["energy"]  = energy
-
-                store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
-                # Free up memory 
-                H = nothing
-                psi0 = nothing
-                psi = nothing
-                GC.gc()
-            end
+            store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
+            # Free up memory 
+            H = nothing
+            psi0 = nothing
+            psi = nothing
+            GC.gc()
         end
     end
 end
