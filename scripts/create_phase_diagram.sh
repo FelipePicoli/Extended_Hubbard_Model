@@ -58,7 +58,7 @@ do
     echo "Setting up the data"
 
     # Organize the data 
-    julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
+    # julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
 
     echo "Cleaning..."
     # Move .csv files if they exist
