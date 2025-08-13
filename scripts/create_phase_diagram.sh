@@ -36,12 +36,12 @@ Vf=4.0
 # DMRG parameters
 Npoints=50
 nsweeps=20
-m=16
+m=80
 
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 6
+for L in 4 5 6
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}
@@ -58,15 +58,13 @@ do
     echo "Setting up the data"
 
     # Organize the data 
-    # julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
+    julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
 
     echo "Cleaning..."
     # Move .csv files if they exist
     if compgen -G "$path_results_tmp/*.csv" > /dev/null; then
         mv "$path_results_tmp"/*.csv "$path_results_final"
         echo "CSV files moved to: $path_results_final"
-        # rm -rf "$path_results_tmp"
-        # echo "Temporary files cleaned up."
     else
         echo "WARNING: No CSV files found in $path_results_tmp. Skipping move and cleanup."
     fi

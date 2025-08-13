@@ -42,7 +42,7 @@ let
     nsweeps = parser["nsweeps"]
     m = parser["m"]
     maxdim = [50, 100, 200, 400, 800, 800, 1000, 1200, 1400, 1600, 1800]
-    cutoff = [1E-14]
+    cutoff = [1E-8]
 
     Npart = floor(Int, L/2) 
     Nup = Npart + L % 2 
@@ -69,6 +69,7 @@ let
             dict_results["energy"]  = energy
 
             store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
+
             # Free up memory 
             H = nothing
             psi0 = nothing
