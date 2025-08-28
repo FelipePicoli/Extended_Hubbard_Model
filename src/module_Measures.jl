@@ -45,7 +45,6 @@ function entanglement_gap(eigvals; cutoff=1e-12)
     return xis
 end
 
-
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)
     single_site_entanglement = fill(0.0, L)
@@ -96,7 +95,6 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
 
     # Reduced density matrix computations
-    
 
     # one-particle RDM
     

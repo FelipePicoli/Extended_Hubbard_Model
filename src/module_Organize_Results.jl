@@ -42,7 +42,6 @@ using Printf
 =#
 function store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
     info_template = @sprintf("XXXXX_%s_L=%d_U=%.2f_V=%.2f_NPoints=%d.txt", model, L, U, V, Npoints)
-
     for (key, value) in dict_results
         filename = joinpath(results, replace(info_template, "XXXXX" => key))
         writedlm(filename, value)

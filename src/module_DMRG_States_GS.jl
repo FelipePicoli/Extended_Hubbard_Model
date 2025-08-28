@@ -96,7 +96,6 @@ function state_ehm_diagram(L, Nup, Ndn, U, V)
     end
     return state
 end
-
 #= 
     Trying to separate the phase-diagram states not only 
     in big squared blocks.
