@@ -54,6 +54,7 @@ let
 
     for (i, U) in enumerate(U_values)
         for (j, V) in enumerate(V_values)
+
             @show U, V 
             H = H_EHM(L, J, U, V, sites)
             #= 
