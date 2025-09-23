@@ -53,7 +53,6 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
     mem = 32000
     cpustask = 4
     total_time = 12
-    outputmain_str = model
 
     job_name = f"{model}_L={L}_U={U:.2f}_batch={batch_id}"
     main_job_file = f"jobarray_{job_name}.sbatch"
@@ -74,28 +73,18 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
         id_jobs_array = ",".join(str(i) for i in range(len(batch)))
         f.write(f"#SBATCH --array={id_jobs_array}\n\n")
         # ---- Environment ----
-        f.write("module load julia\n")
+        f.write("module load julia\n\n")
 
         f.write('subjob_id=$(printf "%03d" $SLURM_ARRAY_TASK_ID)\n')
 
-        v_values = [f"{val:.6f}" for val in batch]
+        v_values = [f"{val:.2f}" for val in batch]
         f.write("V_ARRAY=(" + " ".join(v_values) + ")\n")
 
         f.write('V0_val=${V_ARRAY[$SLURM_ARRAY_TASK_ID]}\n')
         f.write('V0_str=$(printf "%.2f" "$V0_val")\n\n')
 
-        # info_run and outputfile_main
         f.write(f'info_run="{job_name}_V0=$V0_str"\n')
-        f.write('outputfile_main="' + outputmain_str + '_${info_run}.txt"\n')
         f.write('pathresults="' + str(pathresults) + '"\n\n')
-
-        # Check if output exists
-        f.write('if [ -f ${pathresults}/${outputfile_main} ]; then\n')
-        f.write('    echo "Output file ${outputfile_main} already exists. Skipping job."\n')
-        f.write('    exit 0\n')
-        f.write('else\n')
-        f.write('    echo "Output file ${outputfile_main} does not exist. Running the job."\n')
-        f.write('fi\n\n')
 
         # jobfolder/jobfile names (as you had in bash)
         f.write('jobfile=job_$info_run\n')
@@ -120,7 +109,6 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
         f.write('cd ..\n')
         f.write('mv ${jobfolder} ${jobfolderDONE}\n')
         f.write('rm -r ${jobfolderDONE}\n')
-
     print(f"[OK] Wrote {main_job_file}  (array indices: {id_jobs_array})")
 
 N_points = args.N_points
