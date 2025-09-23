@@ -16,15 +16,12 @@ model='EHM_Itensor'
 code_name='Phase_Diagram_Single_Point'
 
 # Get the directory of this script
-script_dir=$(dirname "$(realpath "$0")")
-project_root=$(realpath "$script_dir/../")
+project_root='/temporario2/12559016/ehm_dmrg'
 
 # The path where all .txt results are stored. 
 pathresults=${project_root}'/results/tmp_'${model}
 execfile='code_'${model}'.py'
 job_directory=${project_root}'/cluster/jobs/'
-
-echo "Running all jobs for L=${L} in directory: $job_directory"
 
 # Retorna o # de jobs rodando
 count_current_jobs() {
@@ -32,8 +29,9 @@ count_current_jobs() {
 }
 
 mkdir -p ${job_directory}
-mv *'.sbatch' ${job_directory}
+mv jobarray_*.sbatch "${job_directory}"
 
+echo "Running all jobs for L=${L} in directory: $job_directory"
 # Still would be better to look for the results before running.
 for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
     # Waits current job running to finalize. 
@@ -46,10 +44,6 @@ for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
     # sbatch "$sbatch_file"
     sleep 30
 done
-
 # Simulations ended. Running single-job to organize results 
-
-
-
-
-
+sbatch 'job_organize_results.sbatch' $L $U0 $Uf $V0 $Vf $N_points $project_root
+echo "Finished"
