@@ -32,18 +32,29 @@ mkdir -p ${job_directory}
 mv jobarray_*.sbatch "${job_directory}"
 
 echo "Running all jobs for L=${L} in directory: $job_directory"
-# Still would be better to look for the results before running.
+
 for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
-    # Waits current job running to finalize. 
-    while [ "$(count_current_jobs)" -ge "$MAX_JOBS" ]; do
-        echo "Maximum job limit reached ($MAX_JOBS). Waiting..."
-        sleep 30
-        # sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
+    # extract batch_size from filename 
+    # e.g. jobarray_EHM_L=4_U=0.50_batch_size=20_batch_id=3.sbatch gives batch_size = 20
+    batch_size=$(echo "$sbatch_file" | sed -E 's/.*_batch_size=([0-9]+)_batch_id.*/\1/')
+    
+    # waits until entire batch can run
+    while true; do
+        running=$(count_current_jobs)
+        free_slots=$((N_max_jobs - running))
+
+        if [ "$free_slots" -ge "$batch_size" ]; then
+            echo "Enough slots free ($free_slots ≥ $batch_size). Submitting job."
+            break
+        else
+            echo "Not enough slots free ($free_slots < $batch_size). Waiting..."
+            sleep 30
+            sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
+        fi
     done
+    # submit job 
     echo "Running job: $sbatch_file"
-    # sbatch "$sbatch_file"
+    sbatch "$sbatch_file"
     sleep 30
 done
-# Simulations ended. Running single-job to organize results 
-sbatch 'job_organize_results.sbatch' $L $U0 $Uf $V0 $Vf $N_points $project_root
 echo "Finished"

@@ -9,9 +9,9 @@
 #SBATCH --mail-user=jefter@usp.br
 #SBATCH --partition=SP2
 
-#SBATCH --job-name=organize_results_L=4_batch
-#SBATCH --output=o_organize_results_L=4_batch.out
-#SBATCH --error=e_organize_results_L=4_batch.err
+#SBATCH --job-name=generate_jobarrays_L=4_batch
+#SBATCH --output=o_generate_jobarrays_L=4_batch.out
+#SBATCH --error=e_generate_jobarrays_L=4_batch.err
 
 # System parameters 
 L=$1
@@ -32,7 +32,11 @@ code_name='Phase_Diagram_Single_Point'
 # Get the directory of this script
 project_root='/home/jefter/Workspace/ehm_dmrg/' # '/temporario2/12559016/ehm_dmrg'
 # The path where all .txt results are stored. 
+#
 pathresults=${project_root}'results/tmp_'${model}'_Phase_Diagram'
+
+mkdir -p ${pathresults}
+
 execfile='generate_jobarray_EHM_Itensor_Phase_Diagram.py'
 job_directory=${project_root}'cluster/jobs/'
 code_exec=${project_root}'src/code_'${model}_${code_name}'.jl'

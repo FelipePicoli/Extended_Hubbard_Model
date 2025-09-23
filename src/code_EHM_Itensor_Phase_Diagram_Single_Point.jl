@@ -62,15 +62,15 @@ let
         # Start DMRG calculation:
         energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
 
-        # dict_results = compute_GS_measures(L, sites, psi)
-        # dict_results["energy"]  = energy
+        dict_results = compute_GS_measures(L, sites, psi)
+        dict_results["energy"]  = energy
 
         upd, dnd, updn = density_operators(L, psi, sites)
         
         @show upd 
         @show dnd 
         @show updn
-        # store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
+        store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
         H = nothing
         psi0 = nothing
         psi = nothing

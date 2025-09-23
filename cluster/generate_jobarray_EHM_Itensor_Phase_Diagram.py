@@ -42,7 +42,7 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
+def generate_job_arrays(L, U, V_0, batch, batch_id, batch_size, step_size,
                         model, pathresults, pathexec_dir,
                         execfile, nsweeps, m):
     """
@@ -54,7 +54,7 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
     cpustask = 4
     total_time = 12
 
-    job_name = f"{model}_L={L}_U={U:.2f}_batch={batch_id}"
+    job_name = f"{model}_L={L}_U={U:.2f}_batch_size={batch_size}_batch_id={batch_id}"
     main_job_file = f"jobarray_{job_name}.sbatch"
 
     with open(main_job_file, "w") as f:
@@ -102,7 +102,7 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, step_size,
         f.write('cd ${pathexec}${jobfolder}\n')
 
         cmd = (f'julia "{execfile}" --results "{pathresults}" --model "{model}" '
-               f'--L {L} --U0 {U:.6f} --V0 $V0_str --nsweeps {nsweeps} --m {m}')
+               f'-L {L} --U0 {U:.6f} --V0 $V0_str --nsweeps {nsweeps} --m {m}')
         f.write(cmd + '\n\n')
 
         # after finishing, rename the jobfolder and remove it
@@ -131,4 +131,4 @@ for i, U in enumerate(U_values):
     '''
     batches = list(chunks(np.linspace(V_0, V_f, N_points), N_max_jobs))
     for batch_id, batch in enumerate(batches):
-        generate_job_arrays(L, U, V_0, batch, batch_id, step_size, model, path_results, path_code, code_name, nsweeps, m)
+        generate_job_arrays(L, U, V_0, batch, batch_id, len(batch), step_size, model, path_results, path_code, code_name, nsweeps, m)
