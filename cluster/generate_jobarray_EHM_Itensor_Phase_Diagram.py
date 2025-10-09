@@ -44,15 +44,11 @@ def chunks(lst, n):
 
 def generate_job_arrays(L, U, V_0, batch, batch_id, batch_size, step_size,
                         model, pathresults, pathexec_dir,
-                        execfile, nsweeps, m):
+                        execfile, nsweeps, m, partition, nodesjob, memory, total_time):
     """
         Write sbatch jobarray scripts for given U and V batch.
     """
-    partition = "SP2"
-    nodesjob = 1
-    mem = 32000
-    cpustask = 4
-    total_time = 12
+
 
     job_name = f"{model}_L={L}_U={U:.2f}_batch_size={batch_size}_batch_id={batch_id}"
     main_job_file = f"jobarray_{job_name}.sbatch"
@@ -62,9 +58,9 @@ def generate_job_arrays(L, U, V_0, batch, batch_id, batch_size, step_size,
         f.write("#!/bin/bash\n")
         f.write(f"#SBATCH --partition={partition}\n")
         f.write(f"#SBATCH --nodes={nodesjob}\n")
-        f.write(f"#SBATCH --mem={mem}\n")
+        f.write(f"#SBATCH --mem={memory}\n")
         f.write(f"#SBATCH --cpus-per-task={cpustask}\n")
-        f.write(f"#SBATCH --time={total_time}:00:00\n")
+        f.write(f"#SBATCH --time={total_time}\n")
         f.write(f"#SBATCH --job-name={job_name}\n")
         f.write(f"#SBATCH --output=o_{job_name}.out\n")
         f.write(f"#SBATCH --error=e_{job_name}.err\n")
@@ -125,10 +121,19 @@ U_values = np.linspace(U_0, U_f, N_points)
 # step size needed to iterate in job array.
 step_size = ((V_f - V_0)/ N_points)
 
+partition = "SP2"
+nodesjob = 1
+mem = 8000
+cpustask = 1
+total_time = "00:30:00"
+
 for i, U in enumerate(U_values):
     ''' 
         Create batches for jobarrays in V values.
     '''
     batches = list(chunks(np.linspace(V_0, V_f, N_points), N_max_jobs))
     for batch_id, batch in enumerate(batches):
-        generate_job_arrays(L, U, V_0, batch, batch_id, len(batch), step_size, model, path_results, path_code, code_name, nsweeps, m)
+        generate_job_arrays(L, U, V_0, batch, batch_id, len(batch), step_size, model,
+                            path_results, path_code, code_name, nsweeps, m,
+                            partition, nodesjob, mem, total_time)
+

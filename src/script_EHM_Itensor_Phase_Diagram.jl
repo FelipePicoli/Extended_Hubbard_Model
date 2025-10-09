@@ -26,8 +26,8 @@ let
 
     Npoints = parser["Npoints"]
 
-    U_values = range(U0, stop=Uf, length=Npoints)
-    V_values = range(V0, stop=Vf, length=Npoints)
+    U_values = round.(range(U0, stop=Uf, length=Npoints), digits=2)
+    V_values = round.(range(V0, stop=Vf, length=Npoints), digits=2)
 
     pairs = parser["pairs"]
     

@@ -49,7 +49,7 @@ for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
         else
             echo "Not enough slots free ($free_slots < $batch_size). Waiting..."
             sleep 30
-            sacct --format="user%10,jobid%10,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
+            sacct --format="user%10,jobid%15,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
         fi
     done
     # submit job 
