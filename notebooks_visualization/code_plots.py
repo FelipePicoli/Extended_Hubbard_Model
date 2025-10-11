@@ -134,8 +134,6 @@ def plot_local_densities(measure, U_vals, V_vals, U_target, V_target, y_label, f
         plt.savefig(fname, dpi=300, bbox_inches='tight')
     plt.show()
 
-
-
 def plot_cut_phase_diagram_dual(
     x_vals, y_vals,
     correlation_1, correlation_2,

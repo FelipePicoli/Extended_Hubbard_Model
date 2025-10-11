@@ -1,6 +1,6 @@
 #!/bin/bash
 # list of parameters 
-code='Phase_Diagram'
+code='Phase_Diagram_Single_Point'
 model='EHM_Itensor'
 
 exec_name=$model'_'${code}
@@ -26,8 +26,9 @@ echo "Results Path: $path_results_final"
 
 
 # Simulation parameters 
-U0=-6.0
-V0=-4.0
+L=$1
+U=$2
+V=$3
 
 # DMRG parameters
 nsweeps=6
@@ -37,16 +38,13 @@ mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
 
-for L in 10
-do
-    echo "Creating phase diagram for L="${L} 
+echo "Creating phase diagram for L="${L} 
 
-    mkdir -p "$path_results_tmp"
+mkdir -p "$path_results_tmp"
 
-    echo "Starting simulations"
-    julia $exec_file -L $L --U0 $U --V0 $V --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
+echo "Starting simulations"
+julia $exec_file -L $L --U0 $U --V0 $V --results $path_results_tmp --model $model --nsweeps $nsweeps --m $m
 
-    # Organize the data 
-    # julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
-done
+# Organize the data 
+# julia $exec_script  -L $L --U0 $U0 --Uf $Uf --V0 $V0 --Vf $Vf --Npoints $Npoints --results $path_results_tmp --model $model --code $code
 echo "All done."

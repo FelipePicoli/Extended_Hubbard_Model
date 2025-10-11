@@ -41,8 +41,9 @@ end
     easily implemented by the correlation_matrix from ITensorMPS. 
 
 =#
-function build_1_particle_rdm(state) 
-    L = length(state)
+function build_1_particle_rdm(state, sites) 
+    chain_size = length(sites)
+    L = chain_size # length(state)
     #=  
         N and not L since any site can have spin up or down
     =#
@@ -50,15 +51,13 @@ function build_1_particle_rdm(state)
 
     Cupup = correlation_matrix(state, "Cdagup", "Cup")
     Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
-
     Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
-    # Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
 
     for i in 1:L
         for j in 1:L
             rho_1[i, j] = Cupup[i,j]
             rho_1[i, j + L] = Cupdn[i,j]
-            rho_1[i + L, j] = Cupdn[i, j]' # Cdnup[i,j]
+            rho_1[i + L, j] = Cupdn[i, j]'
             rho_1[i + L, j + L] = Cdndn[i,j]
         end 
     end
@@ -88,6 +87,11 @@ function mode_to_site_spin(m::Int)
     return site, spin
 end
 #= 
+    parameters: 
+
+    phi - state 
+    sites - selected sites sorted 
+    
     Returns a two-particle reduced density matrix. 
 
     This function computes only the part of the matrix in which 
@@ -98,7 +102,7 @@ end
 =#
 function build_2_particle_rdm(phi, sites)
 
-    L = length(phi)
+    L = length(sites) # length(phi)
     
     # Basis for pairs of fermions.
     pairs = two_fermion_basis_pairs(L)
@@ -130,7 +134,7 @@ function build_2_particle_rdm(phi, sites)
 
             # @show (mode_to_site_spin(k), mode_to_site_spin(l))
 
-            os += "Cdag$i_spin", i_site, "Cdag$j_spin", j_site, "C$l_spin", l_site, "C$k_spin", k_site
+            os += "Cdag$i_spin", sites[i_site], "Cdag$j_spin", sites[j_sit], "C$l_spin", sites[l_sit], "C$k_spin", sites[k_site]
 
             O_mpo = MPO(os, sites)
 

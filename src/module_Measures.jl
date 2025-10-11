@@ -45,17 +45,23 @@ function entanglement_gap(eigvals; cutoff=1e-12)
     return xis
 end
 
+function single_site_entanglement(L, i, up, dn, updn)
+    single_site_entanglement = 0.0
+    w_2 = updn[i] 
+    w_up = up[i] - w_2 
+    w_dn = dn[i] - w_2 
+    w_0 = 1 - w_up - w_dn - w_2 
+    single_site_entanglement = 1 - (w_2^2 + w_up^2 + w_dn^2 + w_0^2)
+    return single_site_entanglement
+end 
+
 using Statistics
 function average_single_site_entanglement(L, up, dn, updn)
-    single_site_entanglement = fill(0.0, L)
-    for i in 1:L 
-        w_2 = updn[i] 
-        w_up = up[i] - w_2 
-        w_dn = dn[i] - w_2 
-        w_0 = 1 - w_up - w_dn - w_2 
-        single_site_entanglement[i] = 1 - (w_2^2 + w_up^2 + w_dn^2 + w_0^2)
+    single_site_entanglement_entropy = fill(0.0, L)
+    for i in 1:L
+        single_site_entanglement_entropy[i] = single_site_entanglement(L, i, up, dn, updn)
     end
-    return Statistics.mean(single_site_entanglement)
+    return Statistics.mean(single_site_entanglement_entropy)
 end 
 
 function m_sdw(L, Sj)
@@ -73,6 +79,16 @@ function m_cdw(L, nj)
     return m_cdw_val / L 
 end 
 
+function select_bulk_sites(L, sites, charge_density, doublons, cutoff=1e-12) 
+    selected_sites =  [] 
+    for i in 1:L
+        if(charge_density[i] >= cutoff && doublons[i] >= cutoff)
+            push!(selected_sites, sites[i])
+        end
+    end
+    return selected_sites
+end
+
 function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     #=
         Can reconstruct the densities from these three 
@@ -88,17 +104,17 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     op_m_cdw = abs(m_cdw(L, charge_density))
     op_m_sdw = abs(m_sdw(L, magnetization))               
 
-    #= 
-        Implementation of average single-site entanglement 
-            \mathcal{L} = 1 - (1/L) \sum_{i} Tr (rho_i^2)
-    =#
-    single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
+    avg_single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
+    center_site_single_site_entanglement = single_site_entanglement(L, div(L, 2), upd, dnd, updn)
 
     # Reduced density matrix computations
+    
+    # Selecting sites of bulk part of the chain.
+    selected_sites = select_bulk_sites(L, sites, charge_density, updn) 
 
     # one-particle RDM
     
-    rho_1 = build_1_particle_rdm(psi)
+    rho_1 = build_1_particle_rdm(psi, selected_sites)
 
     # diagonalize rho_1 
     vals_1 = eigen(Hermitian(rho_1)).values
@@ -110,7 +126,7 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     Omega_1rdm = -log.(eigvals_clipped)
 
     # Shifted Von Neumann entropy 
-    pos_vals = vals_1[vals_1 .> cutoff]
+    vals_1 = vals_1[vals_1 .> cutoff]
     S_1rdm, S_1rdm_bits = - sum(vals_1 .* log.(vals_1)), - sum(vals_1 .* log2.(vals_1))
    
     E_p, E_p_bits = S_1rdm - log(L), S_1rdm_bits - log2(L)
@@ -119,7 +135,7 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     coh_1rdm = sum(abs, rho_1) - sum(abs, diag(rho_1))
 
     # two-particle RDM
-    rho_2 = build_2_particle_rdm(psi, sites)
+    rho_2 = build_2_particle_rdm(psi, selected_sites)
 
     # diagonalize rho_2
     vals_2 = eigen(Hermitian(rho_2)).values
@@ -131,7 +147,7 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     Omega_2rdm = -log.(eigvals_clipped)
     
     # Shifted Von Neumann
-    pos_vals = vals_2[vals_2 .> cutoff]
+    vals_2 = vals_2[vals_2 .> cutoff]
     S_2rdm, S_2rdm_bits = - sum(vals_2 .* log.(vals_2)), - sum(vals_2 .* log2.(vals_2))
 
     Q_2, Q_2_bits  = S_2rdm - log(L*(L-1)/2), S_2rdm_bits - log2(L*(L-1)/2)
@@ -145,7 +161,8 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
         "doublons" => updn,
         "E_p" => E_p, 
         "E_p_bits" => E_p_bits,
-        "single_site_entanglement" => single_site_entanglement,
+        "average_single_site_entanglement" => avg_single_site_entanglement,
+        "center_site_single_site_entanglement" => center_site_single_site_entanglement,
         "coh_1rdm" => coh_1rdm,
         "Omega_1rdm" => Omega_1rdm,
         "coh_2rdm" => coh_2rdm,

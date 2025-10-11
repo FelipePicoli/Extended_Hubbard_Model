@@ -62,11 +62,12 @@ let
         # Start DMRG calculation:
         energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
 
+        upd, dnd, updn = density_operators(L, psi, sites)
+        
         dict_results = compute_GS_measures(L, sites, psi)
         dict_results["energy"]  = energy
 
-        upd, dnd, updn = density_operators(L, psi, sites)
-        
+
         @show upd 
         @show dnd 
         @show updn
