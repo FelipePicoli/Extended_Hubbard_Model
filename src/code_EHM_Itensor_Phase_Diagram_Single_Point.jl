@@ -64,14 +64,14 @@ let
 
         upd, dnd, updn = density_operators(L, psi, sites)
         
-        dict_results = compute_GS_measures(L, sites, psi)
+        dict_results = compute_GS_measures(L, sites, psi, upd, dnd, updn)
         dict_results["energy"]  = energy
-
 
         @show upd 
         @show dnd 
         @show updn
-        store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
+
+        # store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
         H = nothing
         psi0 = nothing
         psi = nothing

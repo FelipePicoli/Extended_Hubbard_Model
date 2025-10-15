@@ -80,7 +80,7 @@ function m_cdw(L, nj)
 end 
 
 function select_bulk_sites(L, sites, charge_density, doublons, cutoff=1e-12) 
-    selected_sites =  [] 
+    selected_sites =  Index[] 
     for i in 1:L
         if(charge_density[i] >= cutoff && doublons[i] >= cutoff)
             push!(selected_sites, sites[i])
@@ -89,13 +89,11 @@ function select_bulk_sites(L, sites, charge_density, doublons, cutoff=1e-12)
     return selected_sites
 end
 
-function compute_GS_measures(L, sites, psi; cutoff=1e-12)
+function compute_GS_measures(L, sites, psi, upd, dnd, updn; cutoff=1e-12)
     #=
         Can reconstruct the densities from these three 
         results.
     =#
-    upd, dnd, updn = density_operators(L, psi, sites)
-
     charge_density = upd .+ dnd
     # removed the 1/2 factor
     magnetization = (upd .- dnd) / 2
@@ -111,6 +109,8 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     
     # Selecting sites of bulk part of the chain.
     selected_sites = select_bulk_sites(L, sites, charge_density, updn) 
+    
+    @show selected_sites 
 
     # one-particle RDM
     
@@ -126,15 +126,19 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
     Omega_1rdm = -log.(eigvals_clipped)
 
     # Shifted Von Neumann entropy 
-    vals_1 = vals_1[vals_1 .> cutoff]
+    # vals_1 = vals_1[vals_1 .> cutoff]
     S_1rdm, S_1rdm_bits = - sum(vals_1 .* log.(vals_1)), - sum(vals_1 .* log2.(vals_1))
    
     E_p, E_p_bits = S_1rdm - log(L), S_1rdm_bits - log2(L)
+
+    @show E_p, center_site_single_site_entanglement, avg_single_site_entanglement
     
     # quantum coherence
     coh_1rdm = sum(abs, rho_1) - sum(abs, diag(rho_1))
 
     # two-particle RDM
+
+    #=
     rho_2 = build_2_particle_rdm(psi, selected_sites)
 
     # diagonalize rho_2
@@ -154,6 +158,7 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
 
     # quantum coherence
     coh_2rdm = sum(abs, rho_2) - sum(abs, diag(rho_2))
+    =#
 
     dict = Dict(
         "charge_density" => charge_density, 
@@ -165,10 +170,10 @@ function compute_GS_measures(L, sites, psi; cutoff=1e-12)
         "center_site_single_site_entanglement" => center_site_single_site_entanglement,
         "coh_1rdm" => coh_1rdm,
         "Omega_1rdm" => Omega_1rdm,
-        "coh_2rdm" => coh_2rdm,
-        "Q_2" => Q_2, 
-        "Q_2_bits" => Q_2_bits,
-        "Omega_2rdm" => Omega_2rdm,
+    #    "coh_2rdm" => coh_2rdm,
+    #   "Q_2" => Q_2, 
+    #   "Q_2_bits" => Q_2_bits,
+    #   "Omega_2rdm" => Omega_2rdm,
         "op_m_sdw" => op_m_sdw,
         "op_m_cdw" => op_m_cdw, 
     ) 

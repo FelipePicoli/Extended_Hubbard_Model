@@ -10,7 +10,7 @@ from matplotlib.ticker import ScalarFormatter
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import cbook
-import imageio
+# import imageio
 from scipy.ndimage import gaussian_filter
 
 
@@ -65,7 +65,6 @@ def plot_phase_diagram(measure, U_vals, V_vals, x_label, y_label, measure_label,
     ax1.tick_params(axis='x', labelsize=18)
     ax1.tick_params(axis='y', labelsize=18)
 
-
     ax1.set_xlabel(x_label, fontsize=22)
     # ax1.set_ylabel(y_label, fontsize=22)
 
@@ -103,7 +102,6 @@ def plot_phase_diagram(measure, U_vals, V_vals, x_label, y_label, measure_label,
         ax1.hlines(y=0.0, xmin=0.0, xmax=np.max(U_vals), color='w', linestyle=':', linewidth=1.5)
         ax1.vlines(x=0.0, ymin=0.0, ymax=np.max(V_vals), color='w', linestyle=':', linewidth=1.5)
     
-
     if(fname != None):
         fig.savefig(fname, dpi=300, bbox_inches='tight')
     plt.show()
