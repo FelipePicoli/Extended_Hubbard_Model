@@ -13,12 +13,11 @@ from matplotlib import cbook
 # import imageio
 from scipy.ndimage import gaussian_filter
 
-
 font = {
         'weight' : 'bold',
         'size'   : 16}
 plt.rc('text', usetex=True)
-plt.rc('text.latex', preamble=r'\usepackage{amsmath}\usepackage{newtxtext,newtxmath}')
+plt.rc('text.latex', preamble=r'\usepackage{amsmath}') # \usepackage{newtxtext,newtxmath}')
 plt.rc('font', **font) 
 
 
@@ -136,11 +135,12 @@ def plot_cut_phase_diagram_dual(
     x_vals, y_vals,
     correlation_1, correlation_2,
     coherence_1, coherence_2,
-    target, x_label, y_labels, fname,
+    target, x_label, fname,
     title=None, phase_boundaries=None,
     fixed_axis="y", curve_labels=None,
     x_min=None, x_max=None,
-    y_min=None, y_max=None
+    y_min=None, y_max=None,
+    y_labels = None
 ):
     """
     Plot 1D cuts of four 2D measures (two correlated, two coherent)
@@ -230,8 +230,11 @@ def plot_cut_phase_diagram_dual(
 
     # ==== Labels and legend ====
     ax_left.set_xlabel(x_label, fontsize=16)
-    ax_left.set_ylabel(y_labels[0], fontsize=13, color='tab:red')
-    ax_right.set_ylabel(y_labels[1], fontsize=13, color='tab:blue')
+
+    if y_labels != None:
+        ax_left.set_ylabel(y_labels[0], fontsize=13, color='tab:red')
+        ax_right.set_ylabel(y_labels[1], fontsize=13, color='tab:blue')
+        
 
     lines_left, labels_left = ax_left.get_legend_handles_labels()
     lines_right, labels_right = ax_right.get_legend_handles_labels()
