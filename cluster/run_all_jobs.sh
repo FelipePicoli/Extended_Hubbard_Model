@@ -35,9 +35,20 @@ echo "Running all jobs for L=${L} in directory: $job_directory"
 
 for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
     # extract batch_size from filename 
-    # e.g. jobarray_EHM_L=4_U=0.50_batch_size=20_batch_id=3.sbatch gives batch_size = 20
     batch_size=$(echo "$sbatch_file" | sed -E 's/.*_batch_size=([0-9]+)_batch_id.*/\1/')
-    
+
+    # corresponding error file (replace 'jobarray_' with 'e_' and '.sbatch' with '.err')
+    err_file="${sbatch_file##*/}"                          # remove path
+    err_file="e_${err_file#jobarray_}"                     # change prefix
+    err_file="${err_file%.sbatch}.err"                     # change extension
+    err_file="${job_directory}${err_file}"                 # add back path
+
+    # check if error file exists and is empty
+    if [ -f "$err_file" ] && [ ! -s "$err_file" ]; then
+        echo "Skipping $sbatch_file — corresponding .err file exists and is empty (job completed successfully)."
+        continue
+    fi
+
     # waits until entire batch can run
     while true; do
         running=$(count_current_jobs)
@@ -48,13 +59,16 @@ for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
             break
         else
             echo "Not enough slots free ($free_slots < $batch_size). Waiting..."
-            sleep 30
+            sleep 10
             sacct --format="user%10,jobid%15,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
         fi
     done
-    # submit job 
+
+    # submit job
     echo "Running job: $sbatch_file"
     sbatch "$sbatch_file"
-    sleep 30
+    sleep 10
 done
+
 echo "Finished"
+
