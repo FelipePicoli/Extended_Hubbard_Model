@@ -232,8 +232,8 @@ def plot_cut_phase_diagram_dual(
     ax_left.set_xlabel(x_label, fontsize=16)
 
     if y_labels != None:
-        ax_left.set_ylabel(y_labels[0], fontsize=13, color='tab:red')
-        ax_right.set_ylabel(y_labels[1], fontsize=13, color='tab:blue')
+        ax_left.set_ylabel(y_labels[0], fontsize=16, color='tab:red')
+        ax_right.set_ylabel(y_labels[1], fontsize=16, color='tab:blue')
         
 
     lines_left, labels_left = ax_left.get_legend_handles_labels()

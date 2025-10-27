@@ -34,21 +34,36 @@ mv jobarray_*.sbatch "${job_directory}"
 echo "Running all jobs for L=${L} in directory: $job_directory"
 
 for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
-    # extract batch_size from filename 
+
     batch_size=$(echo "$sbatch_file" | sed -E 's/.*_batch_size=([0-9]+)_batch_id.*/\1/')
 
-    # corresponding error file (replace 'jobarray_' with 'e_' and '.sbatch' with '.err')
-    err_file="${sbatch_file##*/}"                          # remove path
-    err_file="e_${err_file#jobarray_}"                     # change prefix
-    err_file="${err_file%.sbatch}.err"                     # change extension
-    err_file="${job_directory}${err_file}"                 # add back path
+    echo "--------------------------------------------------------"
+    echo "Checking sbatch file: $sbatch_file"
 
-    # check if error file exists and is empty
+    sbatch_filename="${sbatch_file##*/}"
+    err_filename="e_${sbatch_filename#jobarray_}"
+    err_filename="${err_filename%.sbatch}.err"
+    err_file="${project_root}/cluster/${err_filename}"
+
+    echo "Checking error file path: $err_file"
+
     if [ -f "$err_file" ] && [ ! -s "$err_file" ]; then
-        echo "Skipping $sbatch_file — corresponding .err file exists and is empty (job completed successfully)."
-        continue
+      echo "✅ Skipping $err_file — corresponding .err file exists and is **empty** (job completed successfully)."
+      continue # Skip the rest of the loop and move to the next sbatch_file.
+    fi
+    
+    # --- 2. Failed or Incomplete Job (PROCEED to Rerun) ---
+    if [ -f "$err_file" ]; then
+        echo "❌ NOT EMPTY : $err_file (Job FAILED, size > 0). Rerunning this job."
+        cat "$err_file"
+    else
+        echo "❓ MISSING FILE : $err_file (Job likely Incomplete or Failed to start). Rerunning this job."
     fi
 
+    # --- 3. Slot Check and Submission Logic ---
+    # This entire block executes ONLY if the 'continue' was NOT hit above.
+    # It handles both "job failed" and "file missing" cases.
+    
     # waits until entire batch can run
     while true; do
         running=$(count_current_jobs)
@@ -60,15 +75,13 @@ for sbatch_file in "$job_directory"jobarray_${model}_L=${L}_U=*.sbatch; do
         else
             echo "Not enough slots free ($free_slots < $batch_size). Waiting..."
             sleep 10
+            # Assuming 'sacct' works with your cluster for job status check
             sacct --format="user%10,jobid%15,jobname%30,state,ncpu,start,cputime,elapsed" | tail -n 50
         fi
     done
-
     # submit job
     echo "Running job: $sbatch_file"
     sbatch "$sbatch_file"
     sleep 10
 done
-
-echo "Finished"
-
+echo "Finished simulations."
