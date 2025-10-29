@@ -81,8 +81,6 @@ function add_vectorial_measures_to_data_frames(vectors, vector_measures, info_in
     end
     push!(vectors, NamedTuple(row_data))
 end
-
-
 #= 
     Organize a list of scalar results to DataFrames for .csv files
 =#

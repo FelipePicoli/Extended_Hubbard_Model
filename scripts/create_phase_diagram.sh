@@ -41,7 +41,7 @@ m=80
 mkdir -p "$path_results"
 mkdir -p "$path_results_final"
 
-for L in 4 5 6
+for L in 4 # 5 6
 do
     echo "Creating phase diagram for L="${L} 
     echo "Npoints = "${Npoints}

@@ -78,7 +78,7 @@ def plot_phase_diagram(measure, U_vals, V_vals, x_label, y_label, measure_label,
         cax=cax,
         orientation="horizontal",
         ticks=ticks,
-        boundaries=np.linspace(vmin, vmax, 256)
+        boundaries=np.linspace(vmin, vmax, 50)
     )
 
     cbar.ax.xaxis.set_ticks_position("bottom")

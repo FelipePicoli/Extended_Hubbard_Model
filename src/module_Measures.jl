@@ -60,6 +60,7 @@ function average_single_site_entanglement(L, up, dn, updn)
     single_site_entanglement_entropy = fill(0.0, L)
     for i in 1:L
         single_site_entanglement_entropy[i] = single_site_entanglement(L, i, up, dn, updn)
+        # @show single_site_entanglement_entropy[i]
     end
     return Statistics.mean(single_site_entanglement_entropy)
 end 
@@ -110,7 +111,7 @@ function compute_GS_measures(L, sites, psi, upd, dnd, updn; cutoff=1e-12)
     # Selecting sites of bulk part of the chain.
     selected_sites = select_bulk_sites(L, sites, charge_density, updn) 
     
-    @show selected_sites 
+    # @show selected_sites 
 
     # one-particle RDM
     
@@ -131,14 +132,13 @@ function compute_GS_measures(L, sites, psi, upd, dnd, updn; cutoff=1e-12)
    
     E_p, E_p_bits = S_1rdm - log(L), S_1rdm_bits - log2(L)
 
-    @show E_p, center_site_single_site_entanglement, avg_single_site_entanglement
+    # @show E_p, center_site_single_site_entanglement, avg_single_site_entanglement
     
     # quantum coherence
     coh_1rdm = sum(abs, rho_1) - sum(abs, diag(rho_1))
 
     # two-particle RDM
-
-    #=
+    #
     rho_2 = build_2_particle_rdm(psi, selected_sites)
 
     # diagonalize rho_2
@@ -158,7 +158,8 @@ function compute_GS_measures(L, sites, psi, upd, dnd, updn; cutoff=1e-12)
 
     # quantum coherence
     coh_2rdm = sum(abs, rho_2) - sum(abs, diag(rho_2))
-    =#
+
+    # @show Q_2
 
     dict = Dict(
         "charge_density" => charge_density, 
@@ -170,12 +171,12 @@ function compute_GS_measures(L, sites, psi, upd, dnd, updn; cutoff=1e-12)
         "center_site_single_site_entanglement" => center_site_single_site_entanglement,
         "coh_1rdm" => coh_1rdm,
         "Omega_1rdm" => Omega_1rdm,
-    #    "coh_2rdm" => coh_2rdm,
-    #   "Q_2" => Q_2, 
-    #   "Q_2_bits" => Q_2_bits,
-    #   "Omega_2rdm" => Omega_2rdm,
+        "coh_2rdm" => coh_2rdm,
+        "Q_2" => Q_2, 
+        "Q_2_bits" => Q_2_bits,
+        "Omega_2rdm" => Omega_2rdm,
         "op_m_sdw" => op_m_sdw,
-        "op_m_cdw" => op_m_cdw, 
-    ) 
+        "op_m_cdw" => op_m_cdw) 
+
     return dict
 end

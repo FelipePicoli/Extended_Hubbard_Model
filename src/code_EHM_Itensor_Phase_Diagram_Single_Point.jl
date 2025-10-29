@@ -71,7 +71,7 @@ let
         @show dnd 
         @show updn
 
-        # store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
+        store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
         H = nothing
         psi0 = nothing
         psi = nothing

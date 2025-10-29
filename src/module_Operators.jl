@@ -39,7 +39,6 @@ end
     
     This matrix depends on just two correlators so it is 
     easily implemented by the correlation_matrix from ITensorMPS. 
-
 =#
 function build_1_particle_rdm(state, sites) 
     L = length(sites)
@@ -62,6 +61,42 @@ function build_1_particle_rdm(state, sites)
     end
     return rho_1 = rho_1 / L
 end
+
+function build_1_particle_rdm_bulk(state, up, dn, bulk_range=nothing)
+    L = length(state) 
+
+    if isnothing(bulk_range)
+        bulk_range = (L ÷ 4 + 1):(3*L ÷ 4)
+    end
+
+    Cupup = correlation_matrix(state, "Cdagup", "Cup")
+    Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
+    Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
+    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
+
+    bulk_sites = collect(bulk_range)
+    L_b = length(bulk_sites)
+
+    rho_bulk = zeros(ComplexF64, 2*L_b, 2*L_b)
+
+    for (bi, i) in enumerate(bulk_sites)
+        for (bj, j) in enumerate(bulk_sites)
+            i_up = 2 * (bi - 1) + 1
+            i_dn = 2 * (bi - 1) + 2
+            j_up = 2 * (bj - 1) + 1
+            j_dn = 2 * (bj - 1) + 2
+
+            rho_bulk[i_up, j_up] = Cupup[i, j]
+            rho_bulk[i_dn, j_dn] = Cdndn[i, j]
+            rho_bulk[i_up, j_dn] = Cupdn[i, j]
+            rho_bulk[i_dn, j_up] = Cdnup[i, j]
+        end
+    end
+    N_bulk = sum(up[bulk_sites]) + sum(dn[bulk_sites])
+    rho_bulk ./= N_bulk
+    return rho_bulk, N_bulk
+end
+
 #=
     Create the basis for pairs of spins 
     1 = (1, up) , 2 = (1, dn), 3 = (2, up), ...
@@ -141,7 +176,7 @@ function build_2_particle_rdm(phi, sites)
         
         i_site = site_number(i_site)
         j_site = site_number(j_site)
-        @show i_site, j_site 
+        # @show i_site, j_site 
 
         for (q, (k, l)) in enumerate(pairs)
             # @show (q, (k, l))
@@ -153,7 +188,7 @@ function build_2_particle_rdm(phi, sites)
 
             k_site = site_number(k_site)
             l_site = site_number(l_site)
-            @show k_site l_site
+            # @show k_site l_site
 
             os += "Cdag$i_spin", i_site, "Cdag$j_spin", j_site, "C$l_spin", l_site, "C$k_spin", k_site
 
@@ -164,7 +199,6 @@ function build_2_particle_rdm(phi, sites)
     end
     # Force hermiticity
     rho_2 = (rho_2 + rho_2') / 2.0
-
     # Normalize by remaining number of particles 
     rho_2 = (2.0 / (L*(L-1))) * rho_2
     return rho_2
@@ -188,37 +222,4 @@ function density_operators(N, psi, sites)
 end
 
 
-function build_1_particle_rdm_bulk(state, up, dn, bulk_range=nothing)
-    L = length(state) 
 
-    if isnothing(bulk_range)
-        bulk_range = (L ÷ 4 + 1):(3*L ÷ 4)
-    end
-
-    Cupup = correlation_matrix(state, "Cdagup", "Cup")
-    Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
-    Cdnup = correlation_matrix(state, "Cdagdn", "Cup")   
-    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
-
-    bulk_sites = collect(bulk_range)
-    L_b = length(bulk_sites)
-
-    rho_bulk = zeros(ComplexF64, 2*L_b, 2*L_b)
-
-    for (bi, i) in enumerate(bulk_sites)
-        for (bj, j) in enumerate(bulk_sites)
-            i_up = 2 * (bi - 1) + 1
-            i_dn = 2 * (bi - 1) + 2
-            j_up = 2 * (bj - 1) + 1
-            j_dn = 2 * (bj - 1) + 2
-
-            rho_bulk[i_up, j_up] = Cupup[i, j]
-            rho_bulk[i_dn, j_dn] = Cdndn[i, j]
-            rho_bulk[i_up, j_dn] = Cupdn[i, j]
-            rho_bulk[i_dn, j_up] = Cdnup[i, j]
-        end
-    end
-    N_bulk = sum(up[bulk_sites]) + sum(dn[bulk_sites])
-    rho_bulk ./= N_bulk
-    return rho_bulk, N_bulk
-end
