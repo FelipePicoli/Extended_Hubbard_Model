@@ -245,8 +245,7 @@ def plot_cut_phase_diagram_dual(
         all_lines, all_labels,
         fontsize=14, loc="lower center",
         ncol=4, frameon=False,
-        bbox_to_anchor=(0.5, -0.05)
-    )
+        bbox_to_anchor=(0.5, -0.05))
 
     if title:
         ax_left.set_title(title, fontsize=14)

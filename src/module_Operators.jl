@@ -201,6 +201,7 @@ function build_2_particle_rdm(phi, sites)
     rho_2 = (rho_2 + rho_2') / 2.0
     # Normalize by remaining number of particles 
     rho_2 = (2.0 / (L*(L-1))) * rho_2
+    @show rho_2
     return rho_2
 end
 #=
@@ -220,6 +221,3 @@ function density_operators(N, psi, sites)
     end
     return upd, dnd, updn
 end
-
-
-
