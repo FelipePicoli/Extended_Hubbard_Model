@@ -72,6 +72,9 @@ let
         @show updn
         @show dict_results["Q_2"]
 
+        @show dict_results["coh_2rdm"]
+        
+
         # store_EHM_GS_measures_results(results, model, L, U, V, Npoints, dict_results)
         H = nothing
         psi0 = nothing
