@@ -10,6 +10,7 @@
 using ITensors
 using ITensorMPS
 using Random
+using BlockDiagonals
 #=
     Generates the MPO for the EHM Hamiltonian
     with strengths J, U and V.
@@ -18,25 +19,27 @@ using Random
 function H_EHM(N, J, U, V, sites)
     os = OpSum()
     for i in 1:(N - 1)
-      # Knetic
+      # Hopping
       os -= J, "Cdagup", i, "Cup", i + 1
       os -= J, "Cdagup", i + 1, "Cup", i
       os -= J, "Cdagdn", i, "Cdn", i + 1
       os -= J, "Cdagdn", i + 1, "Cdn", i
-      # Nearest-neighbours
+
+      # Nearest-neighbours intearction
       os += V, "Ntot", i, "Ntot", i + 1
     end
-    # on-site
+    # On-site Coulomb interaction
     for i in 1:N
       os += U, "Nupdn", i
     end
-    return MPO(os, sites)
+    # Trying to use the cutoff to optimize things.
+    return MPO(os, sites; cutoff=1e-12)
 end
 #=
     Returns the density of up and down
     electrons.
 =#
-function fermionic_density_operators(N, psi, sites)
+function density_operators(N, psi, sites)
     upd = fill(0.0, N)
     dnd = fill(0.0, N)
     updn = fill(0.0, N)
@@ -49,14 +52,13 @@ function fermionic_density_operators(N, psi, sites)
     end
     return upd, dnd, updn
 end
-
 #=
     Builds the 1-particle reduced density matrix.
 
     This matrix depends on just two correlators so it is
     easily implemented by the correlation_matrix from ITensorMPS.
 =#
-function build_1_particle_rdm(state, sites)
+function get_1_particle_rdm(state, sites)
     L = length(sites)
     #=
         N and not L since any site can have spin up or down
@@ -79,43 +81,59 @@ function build_1_particle_rdm(state, sites)
 end
 
 ## Methods for building the two-particle reduced density matrix.
+function get_all_modes_pairs(modes)
+    return [(m1, m2) for m1 in modes for m2 in modes]
+end
 
+function select_unique_pairs(sites_pairs; ordered = false)
+    if ordered
+        return [(i, j) for (i, j) in sites_pairs if id(i) < id(j)]
+    else
+        return unique(sites_pairs)
+    end
+end
 
+function handler_disjoint_spins(all_mode_pairs)
 
-#=
-    Create the basis for pairs of spins
-    1 = (1, up) , 2 = (1, dn), 3 = (2, up), ...
-=#
-function two_fermion_basis_pairs(modes)
     pairs = []
-    for m1 in 1:length(modes)
-        for m2 in (m1 + 1):length(modes)
-            push!(pairs, (m1, m2))
+    for (mode_m, mode_n) in all_mode_pairs
+
+        m_site, m_spin = mode_m
+        n_site, n_spin = mode_n
+
+        if m_spin != n_spin
+            push!(pairs, (m_site, n_site))
         end
     end
-    return pairs
+    return select_unique_pairs(pairs, ordered = false)
 end
+function handler_joint_spins(all_mode_pairs)
 
-#=
-    Gets the indexed site and spin.
-=#
-function mode_to_site_spin(m::Int)
-    site = (m + 1) ÷ 2
-    spin = isodd(m) ? "up" : "dn"
-    return site, spin
-end
-# Create list of all modes (site, spin) for selected sites
-function site_spin_modes(sites)
-    modes = []
-    for s in sites
-        push!(modes, (s, "up"))
-        push!(modes, (s, "dn"))
+    pairs_spin_up = []
+    pairs_spin_dn = []
+
+    for (mode_m, mode_n) in all_mode_pairs
+
+        m_site, m_spin = mode_m
+        n_site, n_spin = mode_n
+
+        if m_site != n_site && m_spin == n_spin
+            target = (m_spin == "up") ? pairs_spin_up : pairs_spin_dn
+            push!(target, (m_site, n_site))
+        end
     end
-    return modes
+    return [select_unique_pairs(pairs_spin_up, ordered = true),
+            select_unique_pairs(pairs_spin_dn, ordered = true)]
+end
+function two_fermions_basis_sites(modes; disjoint_spins = true)
+    all_mode_pairs = get_all_modes_pairs(modes)
+    if disjoint_spins
+        return handler_disjoint_spins(all_mode_pairs)
+    end
+    return handler_joint_spins(all_mode_pairs)
 end
 #=
     parameters:
-
     phi - state
     sites - selected sites sorted
 
@@ -127,84 +145,58 @@ end
     Tolerance of the julia language packages are very low, so in general
     this computation gives various non-hermitian matrices.
 =#
-function build_2_particle_rdm(phi, sites)
-
-    L = length(sites) # length(phi)
-
-    @show typeof(sites)
-
-    modes = site_spin_modes(sites)
-    pairs = two_fermion_basis_pairs(modes)
-
-    # Basis for pairs of fermions.
-    # pairs = two_fermion_basis_pairs(L)
+function compute_2rdm_block(phi, sites, pairs, spins)
 
     dim = length(pairs)
+    rho_rdm = zeros(ComplexF64, dim, dim)
 
-    # @show dim
+    s1, s2, s3, s4 = spins
 
-    rho_2 = zeros(ComplexF64, dim, dim)
-
-    # Ugly gambiarra necessary to obtain the site number.
     site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
-    #=
-        Loops through all the configurations with no repeated indices and spins,
-        stores the elements rho_2[p, q] = <psi' | O | psi>.
-    =#
-    for (p, (i, j)) in enumerate(pairs)
-        # @show (p, (i, j))
 
-        i_site, i_spin = modes[i]
-        j_site, j_spin = modes[j]
+    for p in 1:dim
+        i_site, j_site = pairs[p]
+        i, j = site_number(i_site), site_number(j_site)
+        for q in p:dim
+            k_site, l_site = pairs[q]
+            k, l = site_number(k_site), site_number(l_site)
 
-        i_site = site_number(i_site)
-        j_site = site_number(j_site)
-        # @show i_site, j_site
-
-        for (q, (k, l)) in enumerate(pairs)
-            # @show (q, (k, l))
+            # @show i, j, k, l
+            # @show s1, s2, s3, s4
 
             os = OpSum()
+            os -= "Cdag$s1", i, "Cdag$s2", j, "C$s3", k, "C$s4", l
 
-            k_site, k_spin = modes[k]
-            l_site, l_spin = modes[l]
+            O_mpo = MPO(os, sites; cutoff=1e-15)
 
-            k_site = site_number(k_site)
-            l_site = site_number(l_site)
-            # @show k_site l_site
-
-            os += "Cdag$i_spin", i_site, "Cdag$j_spin", j_site, "C$l_spin", l_site, "C$k_spin", k_site
-
-            O_mpo = MPO(os, sites)
-
-            rho_2[p, q] = inner(phi', O_mpo, phi)
+            val = inner(phi', O_mpo, phi)
+            rho_rdm[p, q] = val
+            rho_rdm[q, p] = conj(val)
         end
     end
-    # Force hermiticity
-    rho_2 = (rho_2 + rho_2') / 2.0
-    # Normalize by remaining number of particles
-    rho_2 = (2.0 / (L*(L-1))) * rho_2
-    @show rho_2
+    return rho_rdm
+end
+# Create list of all modes (site, spin) for selected sites
+function site_spin_modes(sites)
+    return [(site, spin) for site in sites for spin in ("up", "dn")]
+end
+function get_2_particle_RDM(phi, sites)
+    L = length(sites)
+
+    modes = site_spin_modes(sites)
+
+    sites_pairs_equal_spins_sector = two_fermions_basis_sites(modes, disjoint_spins = false)
+
+    pairs_spin_up = sites_pairs_equal_spins_sector[1]
+    pairs_spin_dn = sites_pairs_equal_spins_sector[2]
+
+    pairs_mixed_spins = two_fermions_basis_sites(modes, disjoint_spins = true)
+
+    rho_upup = compute_2rdm_block(phi, sites, pairs_spin_up, ["up","up", "up", "up"])
+    rho_dndn = compute_2rdm_block(phi, sites, pairs_spin_dn, ["dn","dn", "dn", "dn"])
+    rho_updn = compute_2rdm_block(phi, sites, pairs_mixed_spins, ["up","dn", "up", "dn"])
+
+    rho_2 = BlockDiagonal([rho_upup, rho_dndn, rho_updn])
+    rho_2 *= (2.0 / (L*(L-1)))
     return rho_2
-end
-
-
-# Still need fixing.
-function sites_to_modes(sites)
-    return [(s, spin), for s in sites for spin in ('up', 'dn')]
-end
-
-function select_unique_pairs()
-end
-function get_all_modes_pairs()
-end
-function handler_disjoint_spins()
-end
-function handler_joint_spins()
-end
-function two_fermions_basis_sites_pairs_spin_sectors
-end
-function compute_block_2rdm()
-end
-function gbuild_2_particle_rdm()
 end
