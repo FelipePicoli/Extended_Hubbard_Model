@@ -25,7 +25,6 @@ function H_EHM(N, J, U, V, sites)
       os -= J, "Cdagup", i + 1, "Cup", i
       os -= J, "Cdagdn", i, "Cdn", i + 1
       os -= J, "Cdagdn", i + 1, "Cdn", i
-
       # Nearest-neighbours intearction
       os += V, "Ntot", i, "Ntot", i + 1
     end
@@ -36,6 +35,44 @@ function H_EHM(N, J, U, V, sites)
     # Trying to use the cutoff to optimize things.
     return MPO(os, sites; cutoff=1e-12)
 end
+#=
+    Generates the MPOs for the EHM Hamiltonian
+        H_J, H_U, U_V
+    One can build the full Hamiltonian with
+    potentials as
+    H = J * H_J + U * H_U + V * H_V
+    and adding
+    truncate!(H; cutoff= eps)
+    increases performance.
+=#
+function get_EHM_Hamiltonian_components(N, sites)
+    # Hopping term
+    os_J = OpSum()
+    for i in 1:(N - 1)
+        os_J -= 1.0, "Cdagup", i, "Cup", i + 1
+        os_J -= 1.0, "Cdagup", i + 1, "Cup", i
+        os_J -= 1.0, "Cdagdn", i, "Cdn", i + 1
+        os_J -= 1.0, "Cdagdn", i + 1, "Cdn", i
+    end
+    H_J = MPO(os_J, sites)
+
+    # On-site Coulomb interaction
+    os_U = OpSum()
+    for i in 1:N
+        os_U += 1.0, "Nupdn", i
+    end
+    H_U = MPO(os_U, sites)
+
+    # Nearest-neighbor Interaction
+    os_V = OpSum()
+    for i in 1:(N - 1)
+        os_V += 1.0, "Ntot", i, "Ntot", i + 1
+    end
+    H_V = MPO(os_V, sites)
+
+    return H_J, H_U, H_V
+end
+
 #=
     Returns the density of up and down
     electrons.
@@ -59,23 +96,23 @@ end
     This matrix depends on just two correlators so it is
     easily implemented by the correlation_matrix from ITensorMPS.
 =#
-function get_1_particle_rdm(state, sites)
+function get_1_particle_rdm(psi, sites)
     L = length(sites)
     #=
         N and not L since any site can have spin up or down
     =#
     rho_1 = zeros(ComplexF64, 2*L, 2*L)
 
-    Cupup = correlation_matrix(state, "Cdagup", "Cup")
-    Cdndn = correlation_matrix(state, "Cdagdn", "Cdn")
-    Cupdn = correlation_matrix(state, "Cdagup", "Cdn")
+    rho_upup = correlation_matrix(psi, "Cdagup", "Cup")
+    rho_dndn = correlation_matrix(psi, "Cdagdn", "Cdn")
+    rho_updn = correlation_matrix(psi, "Cdagup", "Cdn")
 
     for i in 1:L
         for j in 1:L
-            rho_1[i, j] = Cupup[i,j]
-            rho_1[i, j + L] = Cupdn[i,j]
-            rho_1[i + L, j] = Cupdn[i, j]'
-            rho_1[i + L, j + L] = Cdndn[i,j]
+            rho_1[i, j] = rho_upup[i,j]
+            rho_1[i, j + L] = rho_updn[i,j]
+            rho_1[i + L, j] = rho_updn[i, j]'
+            rho_1[i + L, j + L] = rho_dndn[i,j]
         end
     end
     return rho_1 = rho_1 / L
@@ -184,7 +221,7 @@ function site_spin_modes(sites)
     site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
     return [(site_number(site), spin) for site in sites for spin in ("up", "dn")]
 end
-function get_2_particle_RDM(phi, sites)
+function get_2_particle_rdm(phi, sites)
     L = length(sites)
 
     modes = site_spin_modes(sites)

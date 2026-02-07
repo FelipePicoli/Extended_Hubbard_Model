@@ -7,72 +7,54 @@ using Random
 using ArgParse
 using DelimitedFiles
 using DataFrames
-using CSV
 using Printf
 using LinearAlgebra
-
+using JLD2
 let
     include("module_Fermionic_Operators.jl")
     include("module_Quantum_Info_Tools.jl")
-    include("module_States_Ansatze.jl")
+    include("module_Preproccessing.jl")
     include("module_Argparse.jl")
     include("module_Data.jl")
 
     parser = parse_commandline()
 
     # model parameters
-    L = 4 # parser["L"]
-    model = parser["model"]
-    results = parser["results"]
+    L = parser["L"]
     J = parser["J"]
-    U = 0.0 # parser["U0"]
-    V = 0.0 # parser["V0"]
+    U = parser["U0"]
+    V = parser["V0"]
 
-    @show (L, J, U, V)
+    model = parser["model"]
+    results_path = parser["results"]
+    result_file_name = parser["result_file_name"]
+
+    paths = (
+            sites            = joinpath(results_path, parser["site_inds_path"]),
+            hamiltonian_mpos = joinpath(results_path, parser["hamiltonian_mpos"]),
+            random_mps       = joinpath(results_path, parser["previous_random_mps"]),
+            results          = results_path
+        )
 
     # Setting the results data structure.
-    results = Dict(
-        "scalar" =>         Dict(
-                                "energy_GS" => 0.0,
-                                "von_neumann_1rdm_GS" => 0.0,
-                                "quantum_coherence_1rdm_GS" => 0.0,
-                                "von_neumann_2rdm_GS" => 0.0,
-                                "quantum_coherence_2rdm_GS" => 0.0,
-                            ),
-        "vector" =>         Dict(
-                                "single_site_entanglement_GS" => zeros(L),
-                                "charge_density_GS" => zeros(L),
-                                "magnetization_GS" => zeros(L),
-                                "doublons_GS" => zeros(L),
-                            ),
-        "spectrum" =>       Dict(
-                                "entanglement_spectrum_1rdm_GS" => zeros(1, 2*L),
-                                "entanglement_spectrum_2rdm_GS" => zeros(1, L*(2*L-1)),
-                            )
-    )
+    results = data_structure(L)
+
     nsweeps = parser["nsweeps"]
     m = parser["m"]
     maxdim = [10, 20, 50, 100, 200, 400, 800]
     cutoff = [1E-14]
+
     Npart = floor(Int, L/2)
     Nup = Npart + L % 2
     Ndn = L - Nup
 
-    sites = siteinds("Electron", L; conserve_qns=true)
+    H_hamiltonian, psi0, sites = preprocessing_simulation(L, J, U, V, Nup, Ndn, m, paths)
 
-    # println("Building H")
-    H = H_EHM(L, J, U, V, sites)
-
-    state = state_ehm_diagram(L, Nup, Ndn, U, V)
-
-    # println("Obtaining random MPS")
-    psi0 = random_mps(sites, state; linkdims=m)
-
-    # println("Runnning DMRG")
-    # Start DMRG calculation:
-    energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
+    println("Runnning DMRG")
+    energy, psi = dmrg(H_hamiltonian, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
 
     results["scalar"]["energy_GS"] = energy
+    @show energy
 
     upd, dnd, updn = density_operators(L, psi, sites)
 
@@ -83,19 +65,19 @@ let
         results["vector"]["single_site_entanglement_GS"][i] = single_site_entanglement(L, i, upd, dnd, updn)
     end
 
-    @show results["vector"]["single_site_entanglement_GS"]
-
-    rho2 = get_2_particle_RDM(psi, sites)
-
     compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="1rdm")
-    # compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="2rdm")
+    compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="2rdm")
 
     results["vector"]["magnetization_GS"] = magnetization
     results["vector"]["charge_density_GS"] = charge_density
     results["vector"]["doublons_GS"] = updn
 
-    # store_EHM_GS_measures_results(results, model, L, U, V, dict_results)
+    store_results(results, result_file_name, paths.results)
+
+    # Store the random_MPS to .jld2 file for next run.
+    jldsave(paths.random_mps; psi)
     H = nothing
     psi0 = nothing
     GC.gc()
 end
+

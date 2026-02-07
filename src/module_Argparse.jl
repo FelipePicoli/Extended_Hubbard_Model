@@ -12,11 +12,28 @@ function parse_commandline()
             arg_type = String
             default = "EHM_ITensor"
             help = "Name of the model or exec_file"
+        "--result_file_name"
+            arg_type = String
+            help = "Result file name."
+            default = "result.jld2"
+        "--previous_random_mps"
+            arg_type = String
+            help = "Optimizing the simulation storing previous ps0 instead of builing it every simulation."
+            default = "previous_MPS.jld2"
+        "--hamiltonian_mpos"
+            arg_type = String
+            help = "Optimizing the simulation storing previous ps0 instead of builing it every simulation."
+            default = "hamiltonian_MPOS.jld2"
+        "--site_inds_path"
+            arg_type = String
+            help = "Optimizing the simulation storing siteinds in first simulation and loading it in next."
+            default = "siteinds.jld2"
         "--code"
             help = "Name of the executable. i.e. Phase_Diagram"
         "--results"
             arg_type = String
             help = "Path for the results folder"
+            default = "../results/"
         "--J"
             help = "Hopping term."
             default = 1.0
