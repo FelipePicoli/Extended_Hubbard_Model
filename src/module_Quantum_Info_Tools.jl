@@ -25,19 +25,19 @@ function compute_particle_rdm_quantities(L, sites, psi, dict_results, upd, dnd, 
     end
 
     # diagonalize rho
-    vals = eigen(Hermitian(rho)).values
+    eigenvalues = eigen(Hermitian(rho)).values
+    eigenvalues = eigenvalues[eigenvalues .> cutoff]
 
     # Compute entanglement spectrum
-    sorted_indices = sortperm(vals, rev=true)
-    entanglement_spectrum = vals[sorted_indices]
+    sorted_indices = sortperm(eigenvalues, rev=true)
+    entanglement_spectrum = eigenvalues[sorted_indices]
 
     # Shifted Von Neumann entropy
-    von_neumann, von_neumann_bits = - sum(vals .* log.(vals)), - sum(vals.* log2.(vals))
+    von_neumann, von_neumann_bits = - sum(eigenvalues .* log.(eigenvalues)), - sum(eigenvalues.* log2.(eigenvalues))
     von_neumann, von_neumann_bits = von_neumann - log(shift), von_neumann_bits - log2(shift)
-
     # quantum coherence
     quantum_coherence = sum(abs, rho) - sum(abs, diag(rho))
 
-    # dict_results[
 
+    # store to dict.
 end

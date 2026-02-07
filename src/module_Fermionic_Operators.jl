@@ -11,6 +11,7 @@ using ITensors
 using ITensorMPS
 using Random
 using BlockDiagonals
+
 #=
     Generates the MPO for the EHM Hamiltonian
     with strengths J, U and V.
@@ -82,12 +83,13 @@ end
 
 ## Methods for building the two-particle reduced density matrix.
 function get_all_modes_pairs(modes)
-    return [(m1, m2) for m1 in modes for m2 in modes]
+    return [(m1, m2) for m2 in modes for m1 in modes]
 end
 
 function select_unique_pairs(sites_pairs; ordered = false)
     if ordered
-        return [(i, j) for (i, j) in sites_pairs if id(i) < id(j)]
+        # return [(i, j) for (j, i) in sites_pairs if id(i) < id(j)]
+        return [(i, j) for (j, i) in sites_pairs if i < j]
     else
         return unique(sites_pairs)
     end
@@ -152,20 +154,21 @@ function compute_2rdm_block(phi, sites, pairs, spins)
 
     s1, s2, s3, s4 = spins
 
-    site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
+    # site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
 
     for p in 1:dim
-        i_site, j_site = pairs[p]
-        i, j = site_number(i_site), site_number(j_site)
+        i, j = pairs[p]
         for q in p:dim
-            k_site, l_site = pairs[q]
-            k, l = site_number(k_site), site_number(l_site)
+            k, l = pairs[q]
 
             # @show i, j, k, l
             # @show s1, s2, s3, s4
 
             os = OpSum()
-            os -= "Cdag$s1", i, "Cdag$s2", j, "C$s3", k, "C$s4", l
+            os -= "Cdag$s1", i,
+                  "Cdag$s2", j,
+                  "C$s3", k,
+                  "C$s4", l
 
             O_mpo = MPO(os, sites; cutoff=1e-15)
 
@@ -178,7 +181,8 @@ function compute_2rdm_block(phi, sites, pairs, spins)
 end
 # Create list of all modes (site, spin) for selected sites
 function site_spin_modes(sites)
-    return [(site, spin) for site in sites for spin in ("up", "dn")]
+    site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
+    return [(site_number(site), spin) for site in sites for spin in ("up", "dn")]
 end
 function get_2_particle_RDM(phi, sites)
     L = length(sites)

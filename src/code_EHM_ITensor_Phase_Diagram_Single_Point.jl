@@ -10,6 +10,7 @@ using DataFrames
 using CSV
 using Printf
 using LinearAlgebra
+
 let
     include("module_Fermionic_Operators.jl")
     include("module_Quantum_Info_Tools.jl")
@@ -20,22 +21,23 @@ let
     parser = parse_commandline()
 
     # model parameters
-    L = parser["L"]
+    L = 4 # parser["L"]
     model = parser["model"]
     results = parser["results"]
     J = parser["J"]
-    U = parser["U0"]
-    V = parser["V0"]
+    U = 0.0 # parser["U0"]
+    V = 0.0 # parser["V0"]
 
     @show (L, J, U, V)
 
     # Setting the results data structure.
     results = Dict(
         "scalar" =>         Dict(
-                                "von_neumann_1rdm_GS" => Float64,
-                                "quantum_coherence_1rdm_GS" => Float64,
-                                "von_neumann_2rdm_GS" => Float64,
-                                "quantum_coherence_2rdm_GS" => Float64,
+                                "energy_GS" => 0.0,
+                                "von_neumann_1rdm_GS" => 0.0,
+                                "quantum_coherence_1rdm_GS" => 0.0,
+                                "von_neumann_2rdm_GS" => 0.0,
+                                "quantum_coherence_2rdm_GS" => 0.0,
                             ),
         "vector" =>         Dict(
                                 "single_site_entanglement_GS" => zeros(L),
@@ -48,7 +50,6 @@ let
                                 "entanglement_spectrum_2rdm_GS" => zeros(1, L*(2*L-1)),
                             )
     )
-
     nsweeps = parser["nsweeps"]
     m = parser["m"]
     maxdim = [10, 20, 50, 100, 200, 400, 800]
@@ -59,7 +60,7 @@ let
 
     sites = siteinds("Electron", L; conserve_qns=true)
 
-    println("Building H")
+    # println("Building H")
     H = H_EHM(L, J, U, V, sites)
 
     state = state_ehm_diagram(L, Nup, Ndn, U, V)
@@ -71,30 +72,28 @@ let
     # Start DMRG calculation:
     energy, psi = dmrg(H, psi0; nsweeps, maxdim=maxdim, cutoff=cutoff)
 
-    @show energy
+    results["scalar"]["energy_GS"] = energy
 
-    # upd, dnd, updn = density_operators(L, psi, sites)
-    # charge_density = upd .+ dnd
-    # removed the 1/2 factor
-    # magnetization = (upd .- dnd) / 2
-    # compute only single site entanglement, not averages.
-    # avg_single_site_entanglement = average_single_site_entanglement(L, upd, dnd, updn)
+    upd, dnd, updn = density_operators(L, psi, sites)
+
+    charge_density = upd .+ dnd
+    magnetization = (upd .- dnd) / 2
+
+    for i in 1:L
+        results["vector"]["single_site_entanglement_GS"][i] = single_site_entanglement(L, i, upd, dnd, updn)
+    end
+
+    @show results["vector"]["single_site_entanglement_GS"]
 
     rho2 = get_2_particle_RDM(psi, sites)
 
-    eigenvalues = eigen(Hermitian(rho2)).values
-    eigenvalues = eigenvalues[eigenvalues .> 1e-13]
-    shift = log(L * (L-1.0) / 2.0)
-    von_neumann = sum(eigenvalues .* log.(eigenvalues))
-    von_neumann_2rdm = - real(von_neumann - shift)
-    quantum_coherence = sum(abs, rho2) - sum(abs, diag(rho2))
+    compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="1rdm")
+    # compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="2rdm")
 
-    println("von_neumann_2rdm_GS = ", von_neumann_2rdm)
-    println("quantum_coherence_2rdm_GS = ", quantum_coherence)
+    results["vector"]["magnetization_GS"] = magnetization
+    results["vector"]["charge_density_GS"] = charge_density
+    results["vector"]["doublons_GS"] = updn
 
-    # @show rho2
-    # results["vector"]["magnetization_GS"] = magnetization
-    # @show results
     # store_EHM_GS_measures_results(results, model, L, U, V, dict_results)
     H = nothing
     psi0 = nothing
