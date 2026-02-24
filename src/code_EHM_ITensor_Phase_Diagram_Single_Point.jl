@@ -10,6 +10,7 @@ using DataFrames
 using Printf
 using LinearAlgebra
 using JLD2
+using PrettyTables
 let
     include("module_Fermionic_Operators.jl")
     include("module_Quantum_Info_Tools.jl")
@@ -22,17 +23,18 @@ let
     # model parameters
     L = parser["L"]
     J = parser["J"]
-    U = parser["U0"]
-    V = parser["V0"]
+    U = 0.0 # parser["U0"]
+    V = 0.0 # parser["V0"]
 
     model = parser["model"]
     results_path = parser["results"]
+    preprocessing_path = parser["preprocessing_path"]
     result_file_name = parser["result_file_name"]
 
     paths = (
-            sites            = joinpath(results_path, parser["site_inds_path"]),
-            hamiltonian_mpos = joinpath(results_path, parser["hamiltonian_mpos"]),
-            random_mps       = joinpath(results_path, parser["previous_random_mps"]),
+            sites            = joinpath(preprocessing_path, parser["site_inds_path"]),
+            hamiltonian_mpos = joinpath(preprocessing_path, parser["hamiltonian_mpos"]),
+            random_mps       = joinpath(preprocessing_path, parser["previous_random_mps"]),
             results          = results_path
         )
 
@@ -48,6 +50,8 @@ let
     Nup = Npart + L % 2
     Ndn = L - Nup
 
+    @show U, V
+
     H_hamiltonian, psi0, sites = preprocessing_simulation(L, J, U, V, Nup, Ndn, m, paths)
 
     println("Runnning DMRG")
@@ -55,8 +59,10 @@ let
 
     results["scalar"]["energy_GS"] = energy
     @show energy
-
-    upd, dnd, updn = density_operators(L, psi, sites)
+    #=
+        Must use the siteinds to obtain the correct ID.
+    =#
+    upd, dnd, updn = density_operators(L, psi, siteinds(psi))
 
     charge_density = upd .+ dnd
     magnetization = (upd .- dnd) / 2
@@ -65,14 +71,16 @@ let
         results["vector"]["single_site_entanglement_GS"][i] = single_site_entanglement(L, i, upd, dnd, updn)
     end
 
-    compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="1rdm")
-    compute_particle_rdm_quantities(L, sites, psi, results, upd, dnd, updn; rdm="2rdm")
+    compute_particle_rdm_quantities(L, siteinds(psi), psi, results, upd, dnd, updn; rdm="1rdm")
+    compute_particle_rdm_quantities(L, siteinds(psi), psi, results, upd, dnd, updn; rdm="2rdm")
 
     results["vector"]["magnetization_GS"] = magnetization
     results["vector"]["charge_density_GS"] = charge_density
     results["vector"]["doublons_GS"] = updn
 
     store_results(results, result_file_name, paths.results)
+
+    @show results["scalar"]["von_neumann_1rdm_GS"]
 
     # Store the random_MPS to .jld2 file for next run.
     jldsave(paths.random_mps; psi)

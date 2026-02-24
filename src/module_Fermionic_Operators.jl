@@ -12,6 +12,8 @@ using ITensorMPS
 using Random
 using BlockDiagonals
 
+using PrettyTables
+
 #=
     Generates the MPO for the EHM Hamiltonian
     with strengths J, U and V.
@@ -198,18 +200,17 @@ function compute_2rdm_block(phi, sites, pairs, spins)
         for q in p:dim
             k, l = pairs[q]
 
-            # @show i, j, k, l
-            # @show s1, s2, s3, s4
-
             os = OpSum()
-            os -= "Cdag$s1", i,
+            os += "Cdag$s1", i,
                   "Cdag$s2", j,
                   "C$s3", k,
                   "C$s4", l
 
             O_mpo = MPO(os, sites; cutoff=1e-15)
 
-            val = inner(phi', O_mpo, phi)
+            psi = O_mpo * phi
+            val = inner(phi', psi)
+
             rho_rdm[p, q] = val
             rho_rdm[q, p] = conj(val)
         end
@@ -236,6 +237,12 @@ function get_2_particle_rdm(phi, sites)
     rho_upup = compute_2rdm_block(phi, sites, pairs_spin_up, ["up","up", "up", "up"])
     rho_dndn = compute_2rdm_block(phi, sites, pairs_spin_dn, ["dn","dn", "dn", "dn"])
     rho_updn = compute_2rdm_block(phi, sites, pairs_mixed_spins, ["up","dn", "up", "dn"])
+
+    pretty_table(rho_upup)
+
+    rho_upup = correlation_matrix(phi, "Nup", "Nup")
+
+    pretty_table(rho_upup)
 
     rho_2 = BlockDiagonal([rho_upup, rho_dndn, rho_updn])
     rho_2 *= (2.0 / (L*(L-1)))

@@ -31,11 +31,14 @@ script_dir =    os.path.dirname(os.path.realpath(__file__))
 project_root =  os.path.realpath(os.path.join(script_dir, "../../"))
 dir_folder = f"{project_root}/"
 path_results = os.path.join(dir_folder, "results", simulation_results_folder_name)
+path_preprocessed_operators = os.path.join(dir_folder, "preprocessing")
+
 execfile = os.path.join(dir_folder, "src", f"code_{exec_name}.jl")
 
 print("script dir = ", script_dir)
 print("project folder = ", dir_folder)
 print("path results = ", path_results)
+print("path preprocessing = ", path_preprocessed_operators)
 print("execfile = ", execfile)
 print("output_name = ", output_name)
 
@@ -49,7 +52,6 @@ for L in Ls:
             # Format to 2 decimal places to match filename convention
             result_file_name = f'{output_name}_{model}_L={L}_U={U}_V={V}_NPoints={N_points}.jld2'
             info_input = f'{path_results}/{result_file_name}'
-            # print("INFO OUTPUT = ", info_input)
 
             # Check if simulation point already exists
             if os.path.isfile(info_input):
@@ -66,10 +68,9 @@ for L in Ls:
                     str(m),
                     path_results,
                     model,
-                    execfile], check=True)
+                    execfile,
+                    path_preprocessed_operators], check=True)
             except subprocess.CalledProcessError as e:
                 print(f"Error running point L={L}, U={U}: {e}")
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
-
-

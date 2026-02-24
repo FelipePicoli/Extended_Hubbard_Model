@@ -12,7 +12,8 @@ m=$5
 path_results=$6
 model=$7
 exec_file=$8
+path_preprocessing=$9
 
 mkdir -p "$path_results"
 
-julia $exec_file --L $L --U0 $U --V0 $V --results $path_results --model $model --nsweeps $nsweeps --m $m
+julia $exec_file --L $L --U0 $U --V0 $V --results $path_results --model $model --nsweeps $nsweeps --m $m --preprocessing_path $path_preprocessing
