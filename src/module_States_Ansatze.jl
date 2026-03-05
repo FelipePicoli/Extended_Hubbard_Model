@@ -72,21 +72,14 @@ function random_ps_state(L, Nup, Ndn)
     end
     return state
 end
-
-
 #=
     Returns a state for the point (U, V) of the Extended Hubbard Model.
 =#
 function state_ehm_diagram(L, Nup, Ndn, U, V)
-
     state = fill("Emp", L)
-
-    region = get_region(U, V)
-
-    # Weak coupling = metallic
+    region = get_region_phase_diagram(U, V)
     if region == "METALLIC"
         state = random_metallic_state(L, Nup, Ndn)
-    # CDW
     elseif region == "CDW"
         state = random_cdw_state(L, Nup, Ndn)
     elseif region == "SDW"
@@ -103,7 +96,7 @@ end
     using this function. I try to made it look like the plot schematic
     diagram for the EHM.
 =#
-function get_region(u, v)
+function get_region_phase_diagram(u, v)
     alpha = 0.5
 
     # Boundary functions

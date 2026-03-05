@@ -74,7 +74,6 @@ function get_EHM_Hamiltonian_components(N, sites)
 
     return H_J, H_U, H_V
 end
-
 #=
     Returns the density of up and down
     electrons.
@@ -120,80 +119,48 @@ function get_1_particle_rdm(psi, sites)
     return rho_1 = rho_1 / L
 end
 
-## Methods for building the two-particle reduced density matrix.
-function get_all_modes_pairs(modes)
-    return [(m1, m2) for m2 in modes for m1 in modes]
-end
+#=
+    Given an initial MPS phi and list of sites, returns
+    the two-particle reduced density matrix in block diagonal form.
+=#
+function get_2_particle_rdm(phi, sites)
 
-function select_unique_pairs(sites_pairs; ordered = false)
-    if ordered
-        # return [(i, j) for (j, i) in sites_pairs if id(i) < id(j)]
-        return [(i, j) for (j, i) in sites_pairs if i < j]
-    else
-        return unique(sites_pairs)
-    end
-end
+    L = length(sites)
+    pairs_equal_spins, pairs_mixed_spins = get_pairs_spins_sites(sites)
 
-function handler_disjoint_spins(all_mode_pairs)
+    @show pairs_equal_spins
+    @show pairs_mixed_spins
 
-    pairs = []
-    for (mode_m, mode_n) in all_mode_pairs
+    rho_upup = compute_block(phi, sites, pairs_equal_spins, ["up", "up"])
+    # If L is even, then both blocks are equal. Still a must check.
+    # rho_dndn = (L%2 == 0) ? rho_upup : compute_block(phi, sites, pairs_equal_spins, ["dn", "dn"])
+    rho_dndn = compute_block(phi, sites, pairs_equal_spins, ["dn", "dn"])
+    rho_updn = compute_block(phi, sites, pairs_mixed_spins, ["up", "dn"])
 
-        m_site, m_spin = mode_m
-        n_site, n_spin = mode_n
-
-        if m_spin != n_spin
-            push!(pairs, (m_site, n_site))
-        end
-    end
-    return select_unique_pairs(pairs, ordered = false)
-end
-function handler_joint_spins(all_mode_pairs)
-
-    pairs_spin_up = []
-    pairs_spin_dn = []
-
-    for (mode_m, mode_n) in all_mode_pairs
-
-        m_site, m_spin = mode_m
-        n_site, n_spin = mode_n
-
-        if m_site != n_site && m_spin == n_spin
-            target = (m_spin == "up") ? pairs_spin_up : pairs_spin_dn
-            push!(target, (m_site, n_site))
-        end
-    end
-    return [select_unique_pairs(pairs_spin_up, ordered = true),
-            select_unique_pairs(pairs_spin_dn, ordered = true)]
-end
-function two_fermions_basis_sites(modes; disjoint_spins = true)
-    all_mode_pairs = get_all_modes_pairs(modes)
-    if disjoint_spins
-        return handler_disjoint_spins(all_mode_pairs)
-    end
-    return handler_joint_spins(all_mode_pairs)
+    @show size(rho_upup)
+    pretty_table(rho_upup)
+    @show size(rho_dndn)
+    pretty_table(rho_dndn)
+    @show size(rho_updn)
+    pretty_table(rho_updn)
+    # rho_nup_nup = correlation_matrix(phi, "Nup", "Nup")
+    # pretty_table(rho_nup_nup)
+    rho_2 = BlockDiagonal([rho_upup, rho_dndn, rho_updn])
+    @show size(rho_2)
+    rho_2 *= (2.0 / (L*(L-1)))
+    return rho_2
 end
 #=
-    parameters:
-    phi - state
-    sites - selected sites sorted
-
-    Returns a two-particle reduced density matrix.
-
-    This function computes only the part of the matrix in which
-    all of the correlators are different.
-
-    Tolerance of the julia language packages are very low, so in general
-    this computation gives various non-hermitian matrices.
+    Builds a block of the two particle reduced density matrix given an initial
+    MPS phi, a list of sites, pairs - can be mixed or same spins, and which spins.
+    The spins variables can be either
+    ["up", "up"], ["dn", "dn"],["up", "dn"]
 =#
-function compute_2rdm_block(phi, sites, pairs, spins)
-
+function compute_block(phi, sites, pairs, spins)
     dim = length(pairs)
-    rho_rdm = zeros(ComplexF64, dim, dim)
+    rho = zeros(ComplexF64, dim, dim)
 
-    s1, s2, s3, s4 = spins
-
-    # site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
+    s1, s2 = spins
 
     for p in 1:dim
         i, j = pairs[p]
@@ -201,50 +168,50 @@ function compute_2rdm_block(phi, sites, pairs, spins)
             k, l = pairs[q]
 
             os = OpSum()
-            os += "Cdag$s1", i,
-                  "Cdag$s2", j,
-                  "C$s3", k,
-                  "C$s4", l
+            os -= "Cdag$s1", i, "Cdag$s2", j, "C$s1", k, "C$s2", l
 
-            O_mpo = MPO(os, sites; cutoff=1e-15)
+            O_mpo = MPO(os, sites) # ; cutoff=1e-15)
+            val = inner(phi', O_mpo, phi)
 
-            psi = O_mpo * phi
-            val = inner(phi', psi)
-
-            rho_rdm[p, q] = val
-            rho_rdm[q, p] = conj(val)
+            rho[p, q] = val
+            rho[q, p] = conj(val)
         end
     end
-    return rho_rdm
+    return rho
 end
-# Create list of all modes (site, spin) for selected sites
-function site_spin_modes(sites)
+#=
+    Given a list of sites returns the unique list of pairs of sites for same or mixed spins blocks
+    of the rho_2rdm.
+=#
+function get_pairs_spins_sites(sites)
+
+    # Create list of all modes (site, spin) for selected sites
     site_number(site_index) = parse(Int, match(r"n=(\d+)", string(tags(site_index))).captures[1])
-    return [(site_number(site), spin) for site in sites for spin in ("up", "dn")]
-end
-function get_2_particle_rdm(phi, sites)
-    L = length(sites)
+    modes = [(site_number(site), spin) for site in sites for spin in ("up", "dn")]
 
-    modes = site_spin_modes(sites)
+    all_mode_pairs = [(m1, m2) for m2 in modes for m1 in modes]
 
-    sites_pairs_equal_spins_sector = two_fermions_basis_sites(modes, disjoint_spins = false)
+    # Combinations of pairs of sites for equal spins and mixed spins.
+    # Pairs of same spins corresponds to blocks of the matrix where i < j, k < l
+    # the constraint does not apply to the mixed spins case.
+    pairs_same_spins = []
+    pairs_mixed_spins = []
 
-    pairs_spin_up = sites_pairs_equal_spins_sector[1]
-    pairs_spin_dn = sites_pairs_equal_spins_sector[2]
-
-    pairs_mixed_spins = two_fermions_basis_sites(modes, disjoint_spins = true)
-
-    rho_upup = compute_2rdm_block(phi, sites, pairs_spin_up, ["up","up", "up", "up"])
-    rho_dndn = compute_2rdm_block(phi, sites, pairs_spin_dn, ["dn","dn", "dn", "dn"])
-    rho_updn = compute_2rdm_block(phi, sites, pairs_mixed_spins, ["up","dn", "up", "dn"])
-
-    pretty_table(rho_upup)
-
-    rho_upup = correlation_matrix(phi, "Nup", "Nup")
-
-    pretty_table(rho_upup)
-
-    rho_2 = BlockDiagonal([rho_upup, rho_dndn, rho_updn])
-    rho_2 *= (2.0 / (L*(L-1)))
-    return rho_2
+    for (mode_m, mode_n) in all_mode_pairs
+        m_site, m_spin = mode_m
+        n_site, n_spin = mode_n
+        # Case of same spins, different sites
+        if m_site != n_site && m_spin == n_spin
+            push!(pairs_same_spins, (n_site, m_site))
+        end
+        # Case mixed spins, can be same sites
+        if m_spin != n_spin
+            push!(pairs_mixed_spins, (n_site, m_site))
+        end
+    end
+    # For the equal spins case the sites must be ordered, and we only need the unique cases, no repeated combinatiosn:
+    pairs_same_spins = unique([(i, j) for (j, i) in pairs_same_spins if i < j])
+    # For the mixed spins case we only select the unique combinations, with no restrictions on site ordering.#
+    pairs_mixed_spins = unique(pairs_mixed_spins)
+    return pairs_same_spins, pairs_mixed_spins
 end
