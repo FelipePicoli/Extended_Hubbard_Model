@@ -13,13 +13,13 @@ include("Extended_Hubbard_Model_functions.jl")
 
 ############################################################################################################################
 
-const N=10        # Number of sites
-const Nsweep=10
+const N=100        # Number of sites
+const Nsweep=20
 const cutoff=1e-8
 const maxD=[2,2,2,2,2,8,8,8,8,8,20,20,20,20,20,50,50,50,50,50,100,100,200,200,400]
 
-const U=1.0
-const V=1.0
+const U=1
+const V=0
 
 ####################################################--- Main Function ---################################################
 
@@ -33,17 +33,25 @@ function Main_func(U,V,N,Nsweep,maxD,cutoff)
 
     H=MPO_construction(N,sites,U.*ones(N),V.*ones(N),-1.0.*ones(N))
 
-    Elist,Psi=DMRG_optm(N,Nup,Ndn,H,sites,Nsweep,maxD,cutoff)
+    E0,Psi=DMRG_optm(N,Nup,Ndn,H,sites,Nsweep,maxD,cutoff)
 
-    rho2=Two_particle_RDM(Psi,sites)
+    _,rho1=One_particle_RDM(Psi,Int(L/2))
 
-    #S_p=S_vNeumann(Psi,N)
+    C1_l=sum(abs.(rho1))-sum(diag(abs.(rho1)))
 
-    return Elist, Psi, sites
+    Entro_1=S_vNeumann(rho1,N)
+
+    _,rho2=Two_particle_RDM(Psi,Int(L/2),Int(L/2+1))
+
+    C2_l=sum(abs.(rho2))-sum(diag(abs.(rho2)))
+
+    Entro_2=S_vNeumann(rho2,N)
+
+    return Psi, sites, Entro_1, C1_l, Entro_2, C2_l
 end
 
 ############################################################################################################################
 #####################################################--- Running ---########################################################
 ############################################################################################################################
 
-@time e,p,s=Main_func(U,V,N,Nsweep,maxD,cutoff)
+@time p,sites,entro_1,entro_2=Main_func(U,V,N,Nsweep,maxD,cutoff)

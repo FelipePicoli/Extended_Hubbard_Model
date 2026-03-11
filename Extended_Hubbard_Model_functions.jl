@@ -42,7 +42,7 @@ function DMRG_optm(N,Nup,Ndn,H,sites,Nsweep,maxD,cutoff=1e-8,psi0_D=10)
 
     initial_state=get_state(N,Nup,Ndn)
 
-    psi0=random_mps(sites,initial_state; linkdims=psi0_D)
+    psi0=randomMPS(sites,initial_state; linkdims=psi0_D)
 
     energy,psi=dmrg(H,psi0;nsweeps=Nsweep,maxdim=maxD,cutoff=cutoff)
 
@@ -72,6 +72,7 @@ end
 
 ####################################################--- One particle Reduced Density Matrix ---################################################
 
+#=
 function One_particle_RDM(Psi)
 
     L=length(Psi)
@@ -95,8 +96,98 @@ function One_particle_RDM(Psi)
 
     return rho_1./L
 end
+=#
+
+function One_particle_RDM(Psi,i)
+
+    orthogonalize!(Psi,i)
+
+    Ai = Psi[i]
+    Ai_dag = dag(prime(Ai,"Site"))
+
+    rho=Ai*Ai_dag
+
+    return rho, Array(rho.tensor)
+end
 
 ####################################################--- Two particle Reduced Density Matrix ---################################################
+
+function Two_particle_RDM(Psi,i,j)
+
+    orthogonalize!(Psi,i)  # Move o centro de ortogonalidade para i 
+    
+    Psi_bra=dag(Psi) # Calcula o dag
+    prime!(Psi_bra,"Link")  # prima o dag
+
+    if i!=1
+            
+        li_1=linkind(Psi,i-1) # pega o nome da perda a esquerda de i
+
+        rho=prime(Psi[i],li_1)*prime(Psi_bra[i],"Site")
+
+    else
+
+        rho=Psi[i]*prime(Psi_bra[i],"Site")
+
+    end
+
+    # as contrações entre os indices 
+
+    for k=(i+1):1:(j-1)
+
+        rho*=Psi[k]
+        rho*=Psi_bra[k]
+
+    end
+
+    lj=linkind(Psi,j)
+
+    rho*=prime(Psi[j],lj)
+    rho*=prime(Psi_bra[j],"Site")
+
+    rho_tensor = permutedims(rho.tensor, (1,3,2,4))
+
+    d1 = size(rho_tensor, 1)
+    d2 = size(rho_tensor, 2)
+
+    rho_matrix = reshape(Array(rho_tensor), d1^2, d2^2)
+
+    return rho, rho_matrix
+end
+
+#=
+function Two_particle_RDM(Psi,sites)
+    
+    L=length(sites)
+    siz=(size(Psi[1])[1])^2*L
+    size_site=(size(Psi[1])[1])^2
+    
+    rho2=zeros(ComplexF64,siz,siz)
+    
+    idxi=0
+    
+    for i=1:1:L
+        idxj=0
+
+        for j=(i+1):1:L
+            
+            _,rho_matrix=RDM_contraction_two_sites(Psi,i,j)
+            
+            println(size(rho2[(i+idxi):(i+idxi+size_site-1),(i+idxj):(i+idxj+size_site-1)]))
+            println(size(rho_matrix))
+
+            rho2[(1+idxi):(1+idxi+size_site-1),(1+idxj):(1+idxj+size_site-1)].+=rho_matrix
+        
+            idxj+=size_site 
+
+        end 
+        
+        idxi+=size_site
+
+    end 
+    
+    return (rho2.+rho2').*2(L*(L-1)) 
+end
 
 function Two_particle_RDM(Psi,sites)
 
@@ -115,7 +206,49 @@ function Two_particle_RDM(Psi,sites)
         end
     end
  
-    return reshape(rho_2,(2*L)^2,(2*L)^2)
+    return 2/(L*(L-1)).*reshape(rho_2,(2*L)^2,(2*L)^2)
+end
+
+function Two_particle_RDM_block(Psi,sites)
+
+    L=length(Psi)
+    spins=["up","dn"]
+
+    rho_2=zeros(ComplexF64,L,2,L,2,L,2,L,2)
+
+    rho_upupupup=zeros(ComplexF64,L,L,L,L)
+    rho_dndndndn=zeros(ComplexF64,L,L,L,L)
+    rho_dnupdnup=zeros(ComplexF64,L,L,L,L)
+
+    for i=1:1:L, j=1:1:L, k=1:1:L, l=1:1:L
+       
+        if yes_or_not("up","up","up","up",i,j,k,l)
+
+            rho_upupupup[i,j,k,l]=Four_op_correlation(Psi,i,j,k,l,"up","up","up","up",sites)
+
+        end
+
+        if yes_or_not("dn","dn","dn","dn",i,j,k,l)
+
+            rho_dndndndn[i,j,k,l]=Four_op_correlation(Psi,i,j,k,l,"dn","dn","dn","dn",sites)
+
+        end
+        
+        if yes_or_not("dn","up","dn","up",i,j,k,l)
+
+            rho_dnupdnup[i,j,k,l]=Four_op_correlation(Psi,i,j,k,l,"dn","up","dn","up",sites)
+
+        end
+
+    end
+
+    rho_upupupup=reshape(rho_upupupup,L^2,L^2)
+    rho_dndndndn=reshape(rho_dndndndn,L^2,L^2)
+    rho_dnupdnup=reshape(rho_dnupdnup,L^2,L^2)
+
+    mat=2/(L*(L-1)).*cat(rho_upupupup,rho_dndndndn,rho_dnupdnup;dims=(1,2))
+
+    return (mat.+mat')./2
 end
 
 function Four_op_correlation(Psi,i,j,k,l,si,sj,sk,sl,sites)
@@ -167,14 +300,47 @@ function yes_or_not(si,sj,sk,sl,i,j,k,l)
 
     return yes_or_not_paulli*yes_or_not_spin
 end
-
+=#
 ####################################################--- von Neumann Entropy ---################################################
 
-function S_vNeumann(Psi,N)
+function S_vNeumann(rho,N)
 
-    rho_1=One_particle_RDM(Psi)
-
-    lambs=max.(0.0,eigvals(rho_1))
+    lambs=max.(0.0,eigvals(rho))
     
     return -1.0*sum(lambs.*log.(lambs))-log(N)
+end
+
+####################################################--- Main Function ---################################################
+
+function Main_func_cluster(U,V,N,Nsweep,maxD,cutoff)
+
+    Npart=floor(Int,N/2)
+    Nup=Npart+N%2
+    Ndn=N-Nup
+    
+    sites=siteinds("Electron", N; conserve_qns = true)
+
+    H=MPO_construction(N,sites,U.*ones(N),V.*ones(N),-1.0.*ones(N))
+
+    E0,Psi=DMRG_optm(N,Nup,Ndn,H,sites,Nsweep,maxD,cutoff)
+
+    _,rho1=One_particle_RDM(Psi,Int(N/2))
+
+    C1_l=sum(abs.(rho1))-sum(diag(abs.(rho1)))
+
+    Entro_1=S_vNeumann(rho1,N)
+
+    _,rho2=Two_particle_RDM(Psi,Int(N/2),Int(N/2+1))
+
+    C2_llp1=sum(abs.(rho2))-sum(diag(abs.(rho2)))
+
+    Entro_2llp1=S_vNeumann(rho2,N)
+
+    _,rho2=Two_particle_RDM(Psi,Int(N/2),Int(N/2+2))
+
+    C2_llp2=sum(abs.(rho2))-sum(diag(abs.(rho2)))
+
+    Entro_2llp2=S_vNeumann(rho2,N)
+
+    return E0, Entro_1, C1_l, Entro_2llp1, C2_llp1, Entro_2llp2, C2_llp2
 end
