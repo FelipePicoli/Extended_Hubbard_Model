@@ -1,0 +1,4 @@
+.vscode
+venv
+cluster/jobs*
+*txt
