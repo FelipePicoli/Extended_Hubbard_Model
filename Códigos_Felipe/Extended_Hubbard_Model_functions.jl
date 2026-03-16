@@ -112,7 +112,11 @@ end
 
 ####################################################--- Two particle Reduced Density Matrix ---################################################
 
-function Two_particle_RDM(Psi,i,j)
+function Two_sites_RDM(Psi,i,j)
+
+    if i>j
+        i,j = j,i
+    end
 
     orthogonalize!(Psi,i)  # Move o centro de ortogonalidade para i 
     
@@ -140,19 +144,82 @@ function Two_particle_RDM(Psi,i,j)
 
     end
 
-    lj=linkind(Psi,j)
+    if j!=length(Psi)
 
-    rho*=prime(Psi[j],lj)
-    rho*=prime(Psi_bra[j],"Site")
+        lj=linkind(Psi,j)
 
-    rho_tensor = permutedims(rho.tensor, (1,3,2,4))
+        rho*=prime(Psi[j],lj)
+        rho*=prime(Psi_bra[j],"Site")
 
-    d1 = size(rho_tensor, 1)
-    d2 = size(rho_tensor, 2)
+    else
 
-    rho_matrix = reshape(Array(rho_tensor), d1^2, d2^2)
+        rho*=Psi[j]
+        rho*=prime(Psi_bra[j],"Site")
 
-    return rho, rho_matrix
+    end
+
+    return rho
+end
+
+function Two_particle_cor_matrix_sites(Psi,site_i,site_j)
+
+    basis=[
+    (1,4), # (0,duplo)
+    (2,2), # (up,up)
+    (3,3), # (dn,dn)
+    (2,3), # (up,dn)
+    (3,2), # (dn,up)
+    (4,1)  # (duplo,0)
+    ]
+
+    rho_ij=Two_sites_RDM(Psi,site_i,site_j)
+
+    Matrix=zeros(ComplexF64,6,6)
+
+    si_out,si_in,sj_out,sj_in=inds(rho_ij)
+
+    for i=1:1:6
+        for j=1:1:6
+
+            sio,sjo=basis[i]
+            sii,sji=basis[j]
+
+            Matrix[i,j]+=rho_ij[si_out=>sio,sj_out=>sjo,si_in=>sii,sj_in=>sji]
+
+        end
+    end
+
+    return Matrix
+end
+ 
+function Two_particle_RDM(Psi)
+
+    L=length(Psi)
+
+    matrix=zeros(ComplexF64,6*L,6*L)
+
+    for site_i=1:1:L
+        for site_j=1:1:L
+
+            if site_i<site_j
+
+                println(site_i,"   ",site_j)
+
+                m=Two_particle_cor_matrix_sites(Psi,site_i,site_j)
+
+                i1=6*(site_i-1)+1
+                i2=6*site_i
+                j1=6*(site_j-1)+1
+                j2=6*site_j
+
+                matrix[i1:i2,j1:j2].+=m
+                matrix[j1:j2,i1:i2].+=m'
+
+            end
+        end
+    end
+
+    return matrix
 end
 
 #=
